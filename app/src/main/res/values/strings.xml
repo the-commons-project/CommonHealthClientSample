@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">CommonHealth Client Sample App</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <string name="category_list_title">Resource Types</string>
+    <string name="fhir_data_title">FHIR Data</string>
+    <string name="authorize">Authorize</string>
+
+    <string name="next_button_content_description">Next Screen</string>
+
+    <string name="select_datatypes_prompt">Select DataTypes to Authorize</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+
+</resources>

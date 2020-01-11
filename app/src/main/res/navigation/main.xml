@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/main"
+        app:startDestination="@id/categoryListFragment">
+
+    <fragment
+            android:id="@+id/categoryListFragment"
+            android:name="org.thecommonsproject.android.commonhealth.sampleapp.fragments.CategoryListFragment"
+            android:label="@string/category_list_title"
+            tools:layout="@layout/category_list_fragment" >
+        <action
+                android:id="@+id/action_categoryListFragment_to_resourceListFragment"
+                app:destination="@id/resourceListFragment" />
+    </fragment>
+    <fragment
+            android:id="@+id/resourceListFragment"
+            android:name="org.thecommonsproject.android.commonhealth.sampleapp.fragments.ResourceListFragment"
+            android:label="{title}"
+            tools:layout="@layout/resource_list_fragment" >
+
+        <argument android:name="dataType"
+                app:argType="org.thecommonsproject.android.common.interapp.scope.DataType"/>
+
+        <argument android:name="title"
+                app:argType="string"/>
+
+        <action
+                android:id="@+id/action_resourceListFragment_to_FHIRDataFragment"
+                app:destination="@id/FHIRDataFragment" />
+    </fragment>
+
+    <fragment
+            android:id="@+id/FHIRDataFragment"
+            android:name="org.thecommonsproject.android.commonhealth.sampleapp.fragments.FHIRDataFragment"
+            android:label="@string/fhir_data_title"
+            tools:layout="@layout/fhir_data_fragment">
+        <argument android:name="resourceJson"
+                app:argType="string"/>
+    </fragment>
+</navigation>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="org.thecommonsproject.android.commonhealth.sampleapp">
+
+    <application
+        android:name=".SampleApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+
+        <activity android:name=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name="org.thecommonsproject.android.commonhealthclient.service.IdentityTokenJobIntentService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE"/>
+
+        <receiver
+            android:name="org.thecommonsproject.android.commonhealthclient.service.IdentityTokenBroadcastReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="org.thecommonsproject.android.common.interapp.identitytoken.broadcastreceiver.action.IDENTITY_TOKEN_REQUEST" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name="org.thecommonsproject.android.commonhealthclient.broadcastreceiver.AppIdentifierBroadcastReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="org.thecommonsproject.android.commonhealthclient.broadcastreceiver.AppIdentifierBroadcastReceiver.NOP" />
+            </intent-filter>
+        </receiver>
+
+        <activity
+            android:name="org.thecommonsproject.android.commonhealthclient.RedirectUriReceiverActivity"
+            tools:node="replace">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="interapp"
+                    android:pathPrefix="/redirect"
+                    android:scheme="org.thecommonsproject.android.commonhealth.sampleapp" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
