@@ -8,6 +8,7 @@ import com.google.crypto.tink.config.TinkConfig
 import com.jakewharton.threetenabp.AndroidThreeTen
 import org.thecommonsproject.android.common.keyvaluestore.SecureNamespacedKeyValueStore
 import org.thecommonsproject.android.common.keyvaluestore.room.KeyValueLocalDataStore
+import org.thecommonsproject.android.common.util.SynchronizedAndroidKeystoreKmsClientWrapper
 import org.thecommonsproject.android.commonhealthclient.CommonHealthStore
 import org.thecommonsproject.android.commonhealthclient.CommonHealthStoreConfiguration
 import org.thecommonsproject.android.commonhealthclient.CommonHealthStoreProvider
@@ -46,9 +47,11 @@ class SampleApplication: Application(), CommonHealthStoreProvider {
     private fun createSecureNamespacedKeyValueStore(context: Context): SecureNamespacedKeyValueStore {
         val database = database ?: createDataBase(context)
         val namespacedKeyValueStore = KeyValueLocalDataStore(database.keyValueEntryDao())
+        val synchronizedAndroidKeystoreKMSClient = SynchronizedAndroidKeystoreKmsClientWrapper()
         return SecureNamespacedKeyValueStore(
             namespacedKeyValueStore,
-            "secure_namespaced_key_value_store"
+            "secure_namespaced_key_value_store",
+            synchronizedAndroidKeystoreKMSClient
         )
     }
 

@@ -13,8 +13,6 @@ import androidx.navigation.ui.setupActionBarWithNavController
 
 class MainActivity : AppCompatActivity() {
 
-    private val viewModel by viewModels<MainViewModel> { getVmFactory() }
-
     private lateinit var appBarConfiguration : AppBarConfiguration
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

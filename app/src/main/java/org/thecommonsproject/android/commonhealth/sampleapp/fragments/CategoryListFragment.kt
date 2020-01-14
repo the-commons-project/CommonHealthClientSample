@@ -35,8 +35,6 @@ class CategoryListFragment : Fragment() {
     private lateinit var authorizeButton: Button
     private lateinit var spinner: ProgressBar
 
-    private var dialogueFragment: DialogFragment? = null
-
     companion object {
         private val CH_AUTH = 4096
     }
@@ -58,12 +56,6 @@ class CategoryListFragment : Fragment() {
 
         val generateOnClickListener: (DataType) -> View.OnClickListener = { dataType ->
             View.OnClickListener { view ->
-                //prefetch based on selected recordSummaryViewType
-//                dashboardViewModel.prefetchResourceSummariesForType(
-//                    dataGroupSummary,
-//                    summaryViewType
-//                )
-
                 val options = navOptions {
                     anim {
                         enter = R.anim.slide_in_right
@@ -92,13 +84,14 @@ class CategoryListFragment : Fragment() {
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
 
         authorizeButton = view.findViewById(R.id.authorize_button)
+        authorizeButton.isEnabled = false
         authorizeButton.setOnClickListener {
-            showDataTypeSelector()
+            val authIntent = viewModel.generateAuthIntent(requireContext())
+            startActivityForResult(authIntent, CH_AUTH)
         }
 
         spinner = view.findViewById(R.id.progress_bar)
 
-        configureObservers()
         updateUI()
     }
 
@@ -109,61 +102,32 @@ class CategoryListFragment : Fragment() {
                 authorizeButton.isEnabled = false
                 return@launch
             }
-        }
-    }
 
-    private fun configureObservers() {
-        viewModel.scopeRequest.removeObservers(this)
+            val authorizationStatus = viewModel.checkAuthorizationStatus(
+                requireContext()
+            )
 
-        viewModel.scopeRequest.observe(this, Observer { scopeRequest ->
-            when(scopeRequest) {
-                null -> { }
-                else -> {
-                    viewModel.viewModelScope.launch {
-                        viewModel.resetScopeRequest()
-                        beginAuthFlowIfNeeded(scopeRequest)
-                    }
+            when(authorizationStatus) {
+                CommonHealthAuthorizationStatus.unnecessary -> {
+                    Toast.makeText(requireContext(), "Authorization not needed", Toast.LENGTH_LONG).show()
+                    authorizeButton.isEnabled = false
                 }
-            }
-        })
-    }
-
-    private fun showDataTypeSelector() {
-        if (dialogueFragment?.isVisible == true) {
-            return
-        }
-
-        dialogueFragment = DataTypeDialogueFragment(viewModel.allDataTypes.toList(), viewModel)
-        dialogueFragment?.show(parentFragmentManager, "datatypeSelector")
-    }
-
-    private suspend fun beginAuthFlowIfNeeded(scopeRequest: ScopeRequest) {
-        spinner.visibility = View.VISIBLE
-        val authorizationStatus = viewModel.checkAuthorizationStatus(
-            requireContext(),
-            scopeRequest
-        )
-        spinner.visibility = View.GONE
-
-        when(authorizationStatus) {
-            CommonHealthAuthorizationStatus.unnecessary -> {
-                Toast.makeText(requireContext(), "Authorization not needed", Toast.LENGTH_LONG).show()
-            }
-            CommonHealthAuthorizationStatus.shouldRequest -> {
-                val authIntent = viewModel.generateAuthIntent(requireContext(), scopeRequest)
-                startActivityForResult(authIntent, CH_AUTH)
-            }
-            CommonHealthAuthorizationStatus.cannotAuthorize -> {
-                Toast.makeText(requireContext(), "Cannot Authorize", Toast.LENGTH_LONG).show()
-            }
-            CommonHealthAuthorizationStatus.exceedsMaximumAllowedScope -> {
-                Toast.makeText(requireContext(), "Exceeds maximum allowed scope", Toast.LENGTH_LONG).show()
+                CommonHealthAuthorizationStatus.shouldRequest -> {
+                    authorizeButton.isEnabled = true
+                }
+                CommonHealthAuthorizationStatus.cannotAuthorize -> {
+                    Toast.makeText(requireContext(), "Cannot Authorize", Toast.LENGTH_LONG).show()
+                    authorizeButton.isEnabled = false
+                }
+                CommonHealthAuthorizationStatus.exceedsMaximumAllowedScope -> {
+                    Toast.makeText(requireContext(), "Exceeds maximum allowed scope", Toast.LENGTH_LONG).show()
+                    authorizeButton.isEnabled = false
+                }
             }
         }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        updateUI()
 
         when(requestCode) {
             CH_AUTH -> {
@@ -171,6 +135,7 @@ class CategoryListFragment : Fragment() {
                 when(resultCode) {
                     AuthorizationManagementActivity.SUCCESS -> {
                         Toast.makeText(context, "Authorization Succeeded", Toast.LENGTH_SHORT).show()
+                        authorizeButton.isEnabled = false
                     }
                     AuthorizationManagementActivity.FAILURE -> {
 
@@ -188,9 +153,13 @@ class CategoryListFragment : Fragment() {
                     }
                 }
                 //process result
+                updateUI()
                 return
             }
-            else -> super.onActivityResult(requestCode, resultCode, data)
+            else -> {
+                updateUI()
+                super.onActivityResult(requestCode, resultCode, data)
+            }
         }
     }
 

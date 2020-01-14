@@ -21,7 +21,7 @@ import org.thecommonsproject.android.commonhealthclient.CommonHealthStore
 
 class MainViewModel(
     private val commonHealthStore: CommonHealthStore
-) : ViewModel(), DataTypeDialogueFragment.Listener {
+) : ViewModel() {
 
     private val connectionAlias = "connection_alias"
     private val TAG by lazy { MainViewModel::class.java.simpleName }
@@ -36,11 +36,17 @@ class MainViewModel(
         DataType.ClinicalResource.ProceduresResource
     )
 
-    val scopeRequest = MutableLiveData<ScopeRequest?>()
+
+    val scopeRequest: ScopeRequest by lazy {
+        val builder = ScopeRequest.Builder()
+        allDataTypes.forEach {
+            builder.add(it, Scope.Access.READ)
+        }
+        builder.build()
+    }
 
     suspend fun checkAuthorizationStatus(
-        context: Context,
-        scopeRequest: ScopeRequest
+        context: Context
     ) : CommonHealthAuthorizationStatus {
         return commonHealthStore.checkAuthorizationStatus(
             context,
@@ -50,8 +56,7 @@ class MainViewModel(
     }
 
     fun generateAuthIntent(
-        context: Context,
-        scopeRequest: ScopeRequest
+        context: Context
     ) : Intent {
         val authorizationRequest = AuthorizationRequest(
             connectionAlias,
@@ -91,24 +96,24 @@ class MainViewModel(
         return gson.toJson(element)
     }
 
-    fun resetScopeRequest() {
-        scopeRequest.postValue(null)
-    }
-
-    override fun onDataTypeDialogPositiveClick(dialogFragment: DialogFragment, dataTypes: Set<DataType>) {
-        val newRequest = ScopeRequest.Builder()
-            .apply {
-                dataTypes.forEach { dataType ->
-                    this.add(Scope(dataType, Scope.Access.READ))
-                }
-            }
-            .build()
-
-        scopeRequest.postValue(newRequest)
-    }
-
-    override fun onDataTypeDialogNegativeClick(dialogFragment: DialogFragment) {
-        scopeRequest.postValue(null)
-    }
+//    fun resetScopeRequest() {
+//        scopeRequest.postValue(null)
+//    }
+//
+//    override fun onDataTypeDialogPositiveClick(dialogFragment: DialogFragment, dataTypes: Set<DataType>) {
+//        val newRequest = ScopeRequest.Builder()
+//            .apply {
+//                dataTypes.forEach { dataType ->
+//                    this.add(Scope(dataType, Scope.Access.READ))
+//                }
+//            }
+//            .build()
+//
+//        scopeRequest.postValue(newRequest)
+//    }
+//
+//    override fun onDataTypeDialogNegativeClick(dialogFragment: DialogFragment) {
+//        scopeRequest.postValue(null)
+//    }
 
 }
