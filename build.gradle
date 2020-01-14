@@ -25,7 +25,7 @@ allprojects {
     repositories {
         google()
         jcenter()
-        mavenLocal()
+        maven { url "https://dl.bintray.com/thecommonsproject/CommonHealth" }
     }
 }
 
