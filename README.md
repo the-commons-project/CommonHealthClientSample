@@ -16,103 +16,80 @@ This quick start guide is geared towards participants in our closed beta program
 The CommonHealth Client SDK consists of two modules: commonhealthclient and common. Commonhealthclient contains the bulk of functionality for the SDK, while common types shared between the CommonHealth application and the CommonHealth Client SDK. You'll need to add the following to your application's list of dependencies:
 
 ```
-implementation "org.thecommonsproject.commonhealth:common:0.1.0"
-implementation "org.thecommonsproject.commonhealth:commonhealthclient:0.1.0"
+implementation "org.thecommonsproject.commonhealth:common:0.2.0"
+implementation "org.thecommonsproject.commonhealth:commonhealthclient:0.2.0"
 ```
 
 The artifacts currently reside in our organization's bintray repo, but at some point these will be migrated to jcenter. In the mean time, you'll need to add the following maven repository to your list of repositories, typically defined in the project's `gradle.build` file:
 
 `maven { url "https://dl.bintray.com/thecommonsproject/CommonHealth" }`
 
-### Manifest
+### Manifest Placeholders
 
-The interapplication data sharing functionality of CommonHealth leverages native Android communication components. CommonHealth and the CommonHealth Client SDK expect the following service and receivers to be defined in your `manifest.xml` file:
+The interapplication data sharing functionality of CommonHealth leverages native Android communication components. The CommonHealth Client SDK defines the following activities, services, and receivers in its `manifest.xml` file, which will be merged into the application's manifest during the build process:
 
 ```
+<activity android:name=".AuthorizationManagementActivity"
+        android:exported="false"
+        android:theme="@style/Theme.AppCompat.NoActionBar"
+        android:launchMode="singleTask" />
+
+<activity android:name=".RedirectUriReceiverActivity" android:exported="true">
+    <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data
+                android:host="${interappAuthRedirectHost}"
+                android:pathPrefix="${interappAuthRedirectPath}"
+                android:scheme="${interappAuthRedirectScheme}" />
+    </intent-filter>
+</activity>
+
 <service
-    android:name="org.thecommonsproject.android.commonhealthclient.service.IdentityTokenJobIntentService"
-    android:exported="false"
-    android:permission="android.permission.BIND_JOB_SERVICE"/>
+        android:name="org.thecommonsproject.android.commonhealthclient.service.IdentityTokenJobIntentService"
+        android:exported="false"
+        android:permission="android.permission.BIND_JOB_SERVICE"/>
 
 <receiver
-    android:name="org.thecommonsproject.android.commonhealthclient.service.IdentityTokenBroadcastReceiver"
-    android:exported="true">
+        android:name="org.thecommonsproject.android.commonhealthclient.service.IdentityTokenBroadcastReceiver"
+        android:exported="true">
     <intent-filter>
         <action android:name="org.thecommonsproject.android.common.interapp.identitytoken.broadcastreceiver.action.IDENTITY_TOKEN_REQUEST" />
     </intent-filter>
 </receiver>
-
-<receiver
-    android:name="org.thecommonsproject.android.commonhealthclient.broadcastreceiver.AppIdentifierBroadcastReceiver"
-    android:exported="false">
-    <intent-filter>
-        <action android:name="org.thecommonsproject.android.commonhealthclient.broadcastreceiver.AppIdentifierBroadcastReceiver.NOP" />
-    </intent-filter>
-</receiver>
 ```
 
-Our authorziation process is inspired by OAuth and requires that an activity be defined in the client application's `manifest.xml` file to receive a redirect from CommonHealth. Here's an example:
+Our authorziation process is inspired by OAuth and requires that the `RedirectUriReceiverActivity` receive a redirect from CommonHealth. Applications must define the `interappAuthRedirectScheme`, `interappAuthRedirectHost`, and `interappAuthRedirectPath` manifest placeholders in the app's `build.gradle` file, and the compiled URL must match the `authorizationCallbackUri` in the `CommonHealthStoreConfiguration` object (see below). For example, defining the following manifest placeholders in your `build.gradle` file:
 
 ```
-<activity
-    android:name="org.thecommonsproject.android.commonhealthclient.RedirectUriReceiverActivity"
-    tools:node="replace">
-    <intent-filter>
-        <action android:name="android.intent.action.VIEW" />
-
-        <category android:name="android.intent.category.DEFAULT" />
-        <category android:name="android.intent.category.BROWSABLE" />
-
-        <data
-            android:host="interapp"
-            android:pathPrefix="/redirect"
-            android:scheme="org.thecommonsproject.android.commonhealth.sampleapp" />
-    </intent-filter>
-</activity>
+manifestPlaceholders.interappAuthRedirectScheme = "org.thecommonsproject.android.commonhealth.sampleapp"
+manifestPlaceholders.interappAuthRedirectHost = "interapp"
+manifestPlaceholders.interappAuthRedirectPath = "/redirect"
 ```
 
-Note that the Uri defined by the data element translates to `org.thecommonsproject.android.commonhealth.sampleapp://interapp/redirect`. This is configurable, but must match the `authorizationCallbackUri` in the `CommonHealthStoreConfiguration` object (see below).
-
-### Application
-
-The CommonHealth Client SDK implements components that require access to the `CommonHealthStore`. Currently, the client application custom `Application` class **must** implement the `CommonHealthStoreProvider` interface. This interface has a single method:
-
-```
-fun provideCommonHealthStore(): CommonHealthStore
-```
-
-See `SampleApplication` in this repo for an example implementation.
+Translates to `org.thecommonsproject.android.commonhealth.sampleapp://interapp/redirect`
 
 ## Initialization 
 
-### Required Library Initialization
-The CommonHealth Client SDK library depends on serveral libraries, two of which currently require that the client application perform initialization prior to creating the `CommonHealthStore` object. We're working on removing this as a requirement to use the CommonHealth Client SDK, but for now, the easiest way is to add the following to the `onCreate` method of your custom `Application` class implementation:
-
-```
-//Initialize AndroidThreeTen - backport of java.time
-AndroidThreeTen.init(this)
-//Initialize Tink
-TinkConfig.register()
-```
-See the `onCreate` method in the `SampleApplication` class in this repo for a full implementation.
-
 ### CommonHealthStore Configuration
 
-The client application must create a `CommonHealthStore` by providing a `Context`, `CommonHealthStoreConfiguration` object, and an object that implements the `NamespacedKeyValueStore` interface. 
+The client application must initialize the `CommonHealthStore` singleton by providing a `Application`, `CommonHealthStoreConfiguration` object, and an object that implements the `NamespacedKeyValueStore` interface. 
 
 For development, you can use the following to create the `CommonHealthStoreConfiguration` object:
 
 ```
-val configuration = CommonHealthStoreConfiguration.Builder()
-    .setAppId(BuildConfig.APPLICATION_ID)
-    .setCommonHealthAppId("org.thecommonsproject.android.phr.developer")
-    .setCommonHealthAuthorizationUri("org.thecommonsproject.android.phr://interapp/auth)
-    .setAuthorizationCallbackUri("org.thecommonsproject.android.commonhealth.sampleapp://interapp/redirect")
-    .setDeveloperModeEnabled(true)
-    .build()
+val configuration = CommonHealthStoreConfiguration(
+    appId = BuildConfig.APPLICATION_ID,
+    commonHealthAppId = "org.thecommonsproject.android.phr.developer",
+    developerModeEnabled = true,
+    attestationServiceConfiguration = null,
+    commonHealthAuthorizationUri = "org.thecommonsproject.android.phr://interapp/auth",
+    authorizationCallbackUri = "org.thecommonsproject.android.commonhealth.sampleapp://interapp/redirect"
+)
 ```
 
-Note that you'll need to replace the `setAuthorizationCallbackUri` parameter with the Uri defined by the `data` element in the redirect activity defined in your application's `manifest.xml`.
+Note that the the `interappAuthRedirectScheme`, `interappAuthRedirectHost`, and `interappAuthRedirectPath` manifest placeholders must translate into the Uri specified by the `authorizationCallbackUri` parameter.
 
 In order to store the keys required to secure the connection(s) with the CommonHealth application, the client application must also provide a secure implementation of the `NamespacedKeyValueStore` interface. This object persists the stored values across application launches. 
 
@@ -120,19 +97,14 @@ The `common` module provides a `NamespacedKeyValueStore` implementation that uti
 
 To help with security, the `common` module provides `SecureNamespacedKeyValueStore` to automatically encrypt and decrypt values. This class leverages the Google Tink encryption library and a key stored in the Android Keystore.
 
-The `SampleApplication` class contains the `createSecureNamespacedKeyValueStore` method to create a `SecureNamespacedKeyValueStore`:
+The `SampleApplication` class contains the following code to create a `SecureNamespacedKeyValueStore`:
 
 ```
-private fun createSecureNamespacedKeyValueStore(context: Context): SecureNamespacedKeyValueStore {
-    val database = database ?: createDataBase(context)
-    val namespacedKeyValueStore = KeyValueLocalDataStore(database.keyValueEntryDao())
-    val synchronizedAndroidKeystoreKMSClient = SynchronizedAndroidKeystoreKmsClientWrapper()
-    return SecureNamespacedKeyValueStore(
-        namespacedKeyValueStore,
-        "secure_namespaced_key_value_store",
-        synchronizedAndroidKeystoreKMSClient
-    )
-}
+val database = database ?: createDataBase(context)
+val namespacedKeyValueStore = SecureNamespacedKeyValueStore(
+    KeyValueLocalDataStore(database.keyValueEntryDao()),
+    "secure_namespaced_key_value_store"
+)
 ```
 
 Note that `database` is an AndroidRoom database that contains the `KeyValueEntry` entity and implements the `KeyValueEntryDao` DAO. Both of these classes can be found in the `common` module.
@@ -145,7 +117,7 @@ Once installation and configuration is taken care of, usage of the CommonHealth 
 2) Define the scope of access
 3) Check the authorization status
 4) Authorize
-5) Build a query and fetch data
+5) Fetch data
 
 ### A note about the `connectionAlias` parameter
 
@@ -249,6 +221,9 @@ override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) 
                 AuthorizationManagementActivity.SUCCESS -> {
                     // authorization was successful, we can now fetch data from CommonHealth
                 }
+                AuthorizationManagementActivity.USER_CANCELED -> {
+                    // User canceled authorization, retrying permitted
+                }
                 AuthorizationManagementActivity.FAILURE -> {
                     //authorization failed, check the failure exception
                     when (val exception = 
@@ -277,30 +252,17 @@ override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) 
 
 See `CategoryListFragment` in this repo for a working implementation.
 
-### Build a query and fetch data
+### Fetch data
 
-In order to fetch data, client applications first need to build a `DataQuery` object. Currently, only read queries are supported. 
-
-The following sample builds a query that reads all of the patients laboratory results after a reference date:
+In order to fetch data, the SDK provides the `readSampleQuery` method on the `CommonHealthStore`. The interface for this method is defined below:
 
 ```
-val laboratoryResultsResource = DataType.ClinicalResource.LaboratoryResultsResource
-val referenceDate = ...
-val referenceDateParameter = DataQuery.Parameter.After(referenceDate)
-val query = DataQuery.Builder()
-    .withDataTypes(setOf(laboratoryResultsResource))
-    .withAction(DataQuery.Action.read)
-    .withQueryParameter(referenceDateParameter)
-    .build()
-```
-
-Once the `DataQuery` object has been built, it can be executed via the `executeDataQuery` method on the `CommonHealthStore`. The interface for this method is defined below:
-
-```
-suspend fun executeDataQuery(
+suspend fun readSampleQuery(
     context: Context,
-    query: DataQuery,
-    connectionAlias: String
+    connectionAlias: String,
+    dataTypes: Set<DataType>,
+    before: Date? = null,
+    after: Date? = null
 ): List<DataQueryResult>
 ```
 
@@ -316,3 +278,14 @@ See `ResourceListFragment` for an example implementation of the data query build
 ## Registering with CommonHealth
 
 Registering with CommonHealth is not required to begin testing integrations with CommonHealth. However, if you have a client application that you would like to use in production environments, you'll need to register the application with CommonHealth. This is similar to registering an OAuth client, where you would specify information such as required scope, authorization redirect URI, etc. Please reach out to info [at] commonhealth.org for more information.
+
+## Upgrading from v0.1.0 to v0.2.0
+
+`v0.2.0` introduced a number of changes, some of them breaking.
+
+ - Introduced `AuthorizationManagementActivity.USER_CANCELED` activity status code that is returned to the initiating activity in the case that the user cancels authorization.
+ - Removed requirement that applications perform initialization on the `Tink` and `AndroidThreeTen` libraries. This also results in removing application build dependencies on these libraries.
+ - `CommonHealthStoreConfiguration.Builder` class has been removed. Applications should create instances of this class directly. 
+ - Removed the `CommonHealthStoreProvider` interface and dependency on the custom Application implementation to adopt the interface. Implementers should instead initialize the `CommonHealthStore` singleton via the `CommonHealthStore.initialize` static method. The `CommonHealthStore.getSharedInstance` static method is provided for accessing the `CommonHealthStore` singleton.
+ - Removed the requirement for applications to include SDK specific `service`, `broadcastreciever`, and `activity` components in the application manifest. These have been moved to the SDK manifest file and will be merged in during the build process. We've added a requirement that applications define the `interappAuthRedirectScheme`, `interappAuthRedirectHost`, and `interappAuthRedirectPath` manifest placeholders in the app's `build.gradle` file.
+ - Replaced the `CommonHealthStore` `executeDataQuery` method with `readSampleQuery`. 

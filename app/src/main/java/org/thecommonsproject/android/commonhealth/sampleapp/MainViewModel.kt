@@ -72,18 +72,16 @@ class MainViewModel(
     }
 
     suspend fun fetchData(context: Context, clinicalResource: DataType.ClinicalResource) : List<DataQueryResult>{
-        val query = DataQuery.Builder()
-            .withDataTypes(setOf(clinicalResource))
-            .withAction(DataQuery.Action.read)
-            .build()
-
-        try {
-            return commonHealthStore.executeDataQuery(context, query, connectionAlias)
+        return try {
+            commonHealthStore.readSampleQuery(
+                context,
+                connectionAlias,
+                setOf(clinicalResource)
+            )
         } catch (e: Throwable) {
             Log.w(TAG, "Exception fetching data: ", e)
+            emptyList()
         }
-
-        return emptyList()
     }
 
     suspend fun isCommonHealthAvailable(context: Context): Boolean {
