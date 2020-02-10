@@ -3,21 +3,25 @@ package org.thecommonsproject.android.commonhealth.sampleapp
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.channels.actor
 import org.thecommonsproject.android.common.interapp.CommonHealthAuthorizationStatus
-import org.thecommonsproject.android.common.interapp.dataquery.request.DataQuery
+import org.thecommonsproject.android.common.interapp.dataquery.response.ClinicalDataQueryResult
 import org.thecommonsproject.android.common.interapp.dataquery.response.DataQueryResult
 import org.thecommonsproject.android.common.interapp.scope.DataType
 import org.thecommonsproject.android.common.interapp.scope.Scope
 import org.thecommonsproject.android.common.interapp.scope.ScopeRequest
-import org.thecommonsproject.android.commonhealth.sampleapp.fragments.DataTypeDialogueFragment
 import org.thecommonsproject.android.commonhealthclient.AuthorizationManagementActivity
 import org.thecommonsproject.android.commonhealthclient.AuthorizationRequest
 import org.thecommonsproject.android.commonhealthclient.CommonHealthStore
+import timber.log.Timber
+import java.util.*
 
 class MainViewModel(
     private val commonHealthStore: CommonHealthStore
@@ -43,6 +47,39 @@ class MainViewModel(
             builder.add(it, Scope.Access.READ)
         }
         builder.build()
+    }
+
+    sealed class ResultHolderMessage {
+        class SetResults(val resourceType: DataType.ClinicalResource, val results: List<ClinicalDataQueryResult>) : ResultHolderMessage()
+    }
+
+
+    private var resultsMap: Map<DataType.ClinicalResource, List<ClinicalDataQueryResult>> = emptyMap()
+    var resultsLiveData: MutableLiveData<Map<DataType.ClinicalResource, List<ClinicalDataQueryResult>>> = MutableLiveData(resultsMap)
+    // This function launches a new counter actor
+    fun CoroutineScope.resultsHolderActor() = actor<ResultHolderMessage> {
+
+        for (msg in channel) { // iterate over incoming messages
+            when (msg) {
+                is ResultHolderMessage.SetResults -> {
+
+                    when (val existingResults = resultsMap[msg.resourceType]) {
+                        null -> {}
+                        else -> { assert(existingResults.count() == msg.results.count()) }
+                    }
+
+                    resultsMap = resultsMap.plus(Pair(msg.resourceType, msg.results))
+                    resultsLiveData.postValue(resultsMap)
+                }
+            }
+        }
+    }
+
+    var resultsHolderActor: SendChannel<ResultHolderMessage>? = null
+    init {
+        viewModelScope.launch {
+            this@MainViewModel.resultsHolderActor = resultsHolderActor()
+        }
     }
 
     suspend fun checkAuthorizationStatus(
@@ -71,7 +108,7 @@ class MainViewModel(
         )
     }
 
-    suspend fun fetchData(context: Context, clinicalResource: DataType.ClinicalResource) : List<DataQueryResult>{
+    private suspend fun fetchData(context: Context, clinicalResource: DataType.ClinicalResource) : List<DataQueryResult>{
         return try {
             commonHealthStore.readSampleQuery(
                 context,
@@ -84,6 +121,41 @@ class MainViewModel(
         }
     }
 
+    suspend fun fetchAllData(context: Context) {
+
+
+        val typesToFetch = allDataTypes
+//        val typesToFetch: List<DataType.ClinicalResource> = (0 until 100).flatMap {
+//            allDataTypes
+//        }
+
+        val startTime = Date()
+        Timber.d("Starting %d fetches", typesToFetch.count())
+
+        val jobs = typesToFetch.mapIndexed { index, clinicalResource ->
+            Timber.d("Launching coroutine %d", index)
+            CoroutineScope(Dispatchers.IO).launch {
+                Timber.d("co %d: Fetching %s results", index, clinicalResource.uniqueKey)
+                val results = fetchData(context, clinicalResource).mapNotNull { it as? ClinicalDataQueryResult }
+                Timber.d("co %d: Fetched %d %s results", index, results.count(), clinicalResource.uniqueKey)
+                resultsHolderActor!!.send(
+                    ResultHolderMessage.SetResults(
+                        clinicalResource,
+                        results
+                    )
+                )
+            }
+        }
+        jobs.joinAll()
+
+
+        val endTime = Date()
+        val totalDuration = (endTime.time - startTime.time).toDouble() / 1000.0
+        val avgDuration = totalDuration / typesToFetch.count()
+        Timber.d("Ended %d fetches. total %f sec, avg %f sec", typesToFetch.count(), totalDuration, avgDuration)
+
+    }
+
     suspend fun isCommonHealthAvailable(context: Context): Boolean {
         return commonHealthStore.isCommonHealthAvailable(context)
     }
@@ -93,25 +165,5 @@ class MainViewModel(
         val element = JsonParser.parseString(jsonString)
         return gson.toJson(element)
     }
-
-//    fun resetScopeRequest() {
-//        scopeRequest.postValue(null)
-//    }
-//
-//    override fun onDataTypeDialogPositiveClick(dialogFragment: DialogFragment, dataTypes: Set<DataType>) {
-//        val newRequest = ScopeRequest.Builder()
-//            .apply {
-//                dataTypes.forEach { dataType ->
-//                    this.add(Scope(dataType, Scope.Access.READ))
-//                }
-//            }
-//            .build()
-//
-//        scopeRequest.postValue(newRequest)
-//    }
-//
-//    override fun onDataTypeDialogNegativeClick(dialogFragment: DialogFragment) {
-//        scopeRequest.postValue(null)
-//    }
 
 }

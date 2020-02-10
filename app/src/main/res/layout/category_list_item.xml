@@ -27,6 +27,16 @@
                 android:gravity="center_vertical"
                 tools:text="Allergies" />
 
+        <TextView
+            android:id="@+id/count_text_view"
+            android:layout_width="24dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0"
+            android:textSize="@dimen/list_item_title_text_size"
+            android:textColor="@android:color/primary_text_light"
+            android:gravity="center_vertical"
+            tools:text="25" />
+
         <ImageView
                 android:id="@+id/action_button"
                 android:layout_width="24dp"

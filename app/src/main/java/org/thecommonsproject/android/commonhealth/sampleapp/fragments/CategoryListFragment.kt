@@ -8,9 +8,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
-import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.Observer
+import androidx.lifecycle.observe
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.navOptions
@@ -20,7 +19,6 @@ import kotlinx.coroutines.launch
 import org.thecommonsproject.android.common.interapp.CommonHealthAuthorizationStatus
 import org.thecommonsproject.android.common.interapp.InterappException
 import org.thecommonsproject.android.common.interapp.scope.DataType
-import org.thecommonsproject.android.common.interapp.scope.ScopeRequest
 import org.thecommonsproject.android.commonhealth.sampleapp.MainViewModel
 import org.thecommonsproject.android.commonhealth.sampleapp.R
 import org.thecommonsproject.android.commonhealth.sampleapp.getVmFactory
@@ -92,6 +90,11 @@ class CategoryListFragment : Fragment() {
 
         spinner = view.findViewById(R.id.progress_bar)
 
+        viewModel.resultsLiveData.observe(this) { resultsMap ->
+            val resultCounts = resultsMap.mapValues { it.value.count() }
+            adapter.updateResoutCounts(resultCounts)
+        }
+
         updateUI()
     }
 
@@ -123,6 +126,10 @@ class CategoryListFragment : Fragment() {
                     Toast.makeText(requireContext(), "Exceeds maximum allowed scope", Toast.LENGTH_LONG).show()
                     authorizeButton.isEnabled = false
                 }
+            }
+
+            if (authorizationStatus == CommonHealthAuthorizationStatus.unnecessary) {
+                viewModel.fetchAllData(requireContext())
             }
         }
     }
@@ -171,13 +178,20 @@ class CategoryListFragment : Fragment() {
         inflater.inflate(R.layout.category_list_item, parent, false)
     ) {
         val title = itemView.findViewById<TextView>(R.id.title_text_view)
+        val countTextView = itemView.findViewById<TextView>(R.id.count_text_view)
         val actionButton = itemView.findViewById<ImageView>(R.id.action_button)
     }
 
     class ContentAdapter(
-        private val categories: List<DataType>,
+        private val categories: List<DataType.ClinicalResource>,
         private val generateOnClickListener: (DataType) -> View.OnClickListener
     ) : RecyclerView.Adapter<CategoryListItemViewHolder>() {
+
+        var resultCounts: Map<DataType.ClinicalResource, Int>? = null
+        fun updateResoutCounts(newResultCounts: Map<DataType.ClinicalResource, Int>) {
+            resultCounts = newResultCounts
+            notifyDataSetChanged()
+        }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CategoryListItemViewHolder {
             return CategoryListItemViewHolder(LayoutInflater.from(parent.context), parent)
@@ -191,11 +205,22 @@ class CategoryListFragment : Fragment() {
 
             val category = categories[position]
 
+            when (val resultCounts = this.resultCounts) {
+                null -> holder.countTextView.text = ""
+                else -> {
+                    val resultCount = resultCounts[category] ?: 0
+                    holder.countTextView.text = "$resultCount"
+                }
+            }
+
             holder.title.setText(category.descriptionStringRes)
+
             holder.actionButton.visibility = View.VISIBLE
             holder.actionButton.setOnClickListener(
                 generateOnClickListener(category)
             )
+
+
         }
 
     }

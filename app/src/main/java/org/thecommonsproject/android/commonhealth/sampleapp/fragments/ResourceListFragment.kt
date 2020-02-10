@@ -9,15 +9,13 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.observe
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.navigation.navOptions
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.coroutines.launch
 import org.thecommonsproject.android.common.interapp.dataquery.response.ClinicalDataQueryResult
 import org.thecommonsproject.android.common.interapp.scope.DataType
 import org.thecommonsproject.android.commonhealth.sampleapp.MainViewModel
@@ -86,22 +84,18 @@ class ResourceListFragment : Fragment() {
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
 
         val progressBar = view.findViewById<ProgressBar>(R.id.progress_bar)
-        progressBar.visibility = View.VISIBLE
-        viewModel.viewModelScope.launch {
-            if (!viewModel.isCommonHealthAvailable(requireContext())) {
-                Toast.makeText(requireContext(), "Please make sure CommonHealth is installed and setup", Toast.LENGTH_LONG).show()
-                return@launch
-            }
+        progressBar.visibility = View.GONE
+//        viewModel.viewModelScope.launch {
+//            if (!viewModel.isCommonHealthAvailable(requireContext())) {
+//                Toast.makeText(requireContext(), "Please make sure CommonHealth is installed and setup", Toast.LENGTH_LONG).show()
+//                return@launch
+//            }
+//        }
 
-            viewModel.fetchData(
-                requireContext(),
-                dataType
-            )
-                .mapNotNull { it as? ClinicalDataQueryResult }
-                .let {
-                    progressBar.visibility = View.GONE
-                    adapter.updateResources(it)
-                }
+        viewModel.resultsLiveData.observe(this) { resultsMap ->
+            resultsMap[dataType]?.let {
+                adapter.updateResources(it)
+            }
         }
     }
 
