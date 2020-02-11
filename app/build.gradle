@@ -14,9 +14,12 @@ android {
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "COMMON_HEALTH_APP_ID", "\"org.thecommonsproject.android.phr.developer\"")
-        buildConfigField("String", "INTERAPP_AUTHORIZATION_URI", "\"org.thecommonsproject.android.phr://interapp/auth\"")
+        buildConfigField("String", "INTERAPP_AUTHORIZATION_URI", "\"org.thecommonsproject.android.phr.developer://interapp/auth\"")
         buildConfigField("String", "AUTH_CALLBACK_URI", "\"org.thecommonsproject.android.commonhealth.sampleapp://interapp/redirect\"")
 
+        manifestPlaceholders.interappAuthRedirectScheme = "org.thecommonsproject.android.commonhealth.sampleapp"
+        manifestPlaceholders.interappAuthRedirectHost = "interapp"
+        manifestPlaceholders.interappAuthRedirectPath = "/redirect"
     }
     buildTypes {
         release {
@@ -59,11 +62,6 @@ dependencies {
     implementation "androidx.room:room-runtime:$roomVersion"
     implementation "androidx.room:room-ktx:$roomVersion"
 //    implementation "androidx.room:room-rxjava2:$roomVersion"
-
-    //SDK requires these
-    //JDK - can we remove these dependencies?
-    implementation "com.google.crypto.tink:tink-android:$tinkVersion"
-    implementation "com.jakewharton.threetenabp:threetenabp:$threetenabpVersion"
 
     //for pretty printing json resources
     implementation "com.google.code.gson:gson:$gsonVersion"

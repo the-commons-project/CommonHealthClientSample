@@ -137,6 +137,10 @@ class CategoryListFragment : Fragment() {
                         Toast.makeText(context, "Authorization Succeeded", Toast.LENGTH_SHORT).show()
                         authorizeButton.isEnabled = false
                     }
+                    AuthorizationManagementActivity.USER_CANCELED -> {
+                        Toast.makeText(context, "User Canceled", Toast.LENGTH_SHORT).show()
+                        authorizeButton.isEnabled = true
+                    }
                     AuthorizationManagementActivity.FAILURE -> {
 
                         when (val exception = data?.getSerializableExtra(AuthorizationManagementActivity.EXTRA_AUTH_FAILURE_EXCEPTION)) {

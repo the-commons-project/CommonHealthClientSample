@@ -24,15 +24,14 @@ class ViewModelFactory constructor(
 }
 
 fun Activity.getVmFactory(): ViewModelFactory {
-    val commonHealthStore = (applicationContext as SampleApplication).provideCommonHealthStore()
+    val commonHealthStore = CommonHealthStore.getSharedInstance()
     return ViewModelFactory(
         commonHealthStore
     )
 }
 
 fun Fragment.getVmFactory(): ViewModelFactory {
-    val context = requireContext().applicationContext
-    val commonHealthStore = (context as SampleApplication).provideCommonHealthStore()
+    val commonHealthStore = CommonHealthStore.getSharedInstance()
     return ViewModelFactory(
         commonHealthStore
     )
