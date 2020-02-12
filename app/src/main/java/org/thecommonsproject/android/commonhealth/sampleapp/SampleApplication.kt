@@ -53,8 +53,8 @@ class SampleApplication: Application() {
     override fun onCreate() {
         super.onCreate()
         //For Logging
-//        Timber.plant(Timber.DebugTree())
-//        Timber.d("CommonHealth Sample Client Application Logging Enabled")
+        Timber.plant(Timber.DebugTree())
+        Timber.d("CommonHealth Sample Client Application Logging Enabled")
 
         initializeCommonHealthStore(this)
     }
