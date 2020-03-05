@@ -66,6 +66,8 @@ dependencies {
     //for pretty printing json resources
     implementation "com.google.code.gson:gson:$gsonVersion"
 
+    //For logging
+    implementation "com.jakewharton.timber:timber:$timberVersion"
 
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'

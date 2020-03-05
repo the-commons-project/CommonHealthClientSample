@@ -7,6 +7,7 @@ import org.thecommonsproject.android.common.keyvaluestore.SecureNamespacedKeyVal
 import org.thecommonsproject.android.common.keyvaluestore.room.KeyValueLocalDataStore
 import org.thecommonsproject.android.commonhealthclient.CommonHealthStore
 import org.thecommonsproject.android.commonhealthclient.CommonHealthStoreConfiguration
+import timber.log.Timber
 
 class SampleApplication: Application() {
 
@@ -51,6 +52,10 @@ class SampleApplication: Application() {
 
     override fun onCreate() {
         super.onCreate()
+        //For Logging
+        Timber.plant(Timber.DebugTree())
+        Timber.d("CommonHealth Sample Client Application Logging Enabled")
+
         initializeCommonHealthStore(this)
     }
 
