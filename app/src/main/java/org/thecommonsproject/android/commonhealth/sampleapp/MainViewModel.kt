@@ -125,19 +125,10 @@ class MainViewModel(
 
 
         val typesToFetch = allDataTypes
-//        val typesToFetch: List<DataType.ClinicalResource> = (0 until 100).flatMap {
-//            allDataTypes
-//        }
+        val jobs = typesToFetch.map { clinicalResource ->
 
-        val startTime = Date()
-        Timber.d("Starting %d fetches", typesToFetch.count())
-
-        val jobs = typesToFetch.mapIndexed { index, clinicalResource ->
-            Timber.d("Launching coroutine %d", index)
             CoroutineScope(Dispatchers.IO).launch {
-                Timber.d("co %d: Fetching %s results", index, clinicalResource.uniqueKey)
                 val results = fetchData(context, clinicalResource).mapNotNull { it as? ClinicalDataQueryResult }
-                Timber.d("co %d: Fetched %d %s results", index, results.count(), clinicalResource.uniqueKey)
                 resultsHolderActor!!.send(
                     ResultHolderMessage.SetResults(
                         clinicalResource,
@@ -145,15 +136,10 @@ class MainViewModel(
                     )
                 )
             }
+
         }
+
         jobs.joinAll()
-
-
-        val endTime = Date()
-        val totalDuration = (endTime.time - startTime.time).toDouble() / 1000.0
-        val avgDuration = totalDuration / typesToFetch.count()
-        Timber.d("Ended %d fetches. total %f sec, avg %f sec", typesToFetch.count(), totalDuration, avgDuration)
-
     }
 
     suspend fun isCommonHealthAvailable(context: Context): Boolean {

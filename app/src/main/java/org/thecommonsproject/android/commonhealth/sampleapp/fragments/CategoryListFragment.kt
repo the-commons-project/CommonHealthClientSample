@@ -91,8 +91,8 @@ class CategoryListFragment : Fragment() {
         spinner = view.findViewById(R.id.progress_bar)
 
         viewModel.resultsLiveData.observe(this) { resultsMap ->
-            val resultCounts = resultsMap.mapValues { it.value.count() }
-            adapter.updateResoutCounts(resultCounts)
+            val resultsCounts = resultsMap.mapValues { it.value.count() }
+            adapter.updateResultsCounts(resultsCounts)
         }
 
         updateUI()
@@ -174,6 +174,11 @@ class CategoryListFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        updateUI()
+    }
+
     class CategoryListItemViewHolder(inflater: LayoutInflater, parent: ViewGroup): RecyclerView.ViewHolder(
         inflater.inflate(R.layout.category_list_item, parent, false)
     ) {
@@ -187,9 +192,9 @@ class CategoryListFragment : Fragment() {
         private val generateOnClickListener: (DataType) -> View.OnClickListener
     ) : RecyclerView.Adapter<CategoryListItemViewHolder>() {
 
-        var resultCounts: Map<DataType.ClinicalResource, Int>? = null
-        fun updateResoutCounts(newResultCounts: Map<DataType.ClinicalResource, Int>) {
-            resultCounts = newResultCounts
+        var resultsCounts: Map<DataType.ClinicalResource, Int>? = null
+        fun updateResultsCounts(newResultsCounts: Map<DataType.ClinicalResource, Int>) {
+            resultsCounts = newResultsCounts
             notifyDataSetChanged()
         }
 
@@ -205,11 +210,11 @@ class CategoryListFragment : Fragment() {
 
             val category = categories[position]
 
-            when (val resultCounts = this.resultCounts) {
+            when (val resultsCounts = this.resultsCounts) {
                 null -> holder.countTextView.text = ""
                 else -> {
-                    val resultCount = resultCounts[category] ?: 0
-                    holder.countTextView.text = "$resultCount"
+                    val resultsCount = resultsCounts[category] ?: 0
+                    holder.countTextView.text = "$resultsCount"
                 }
             }
 

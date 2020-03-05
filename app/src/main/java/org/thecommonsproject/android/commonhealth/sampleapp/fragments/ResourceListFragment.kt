@@ -85,12 +85,6 @@ class ResourceListFragment : Fragment() {
 
         val progressBar = view.findViewById<ProgressBar>(R.id.progress_bar)
         progressBar.visibility = View.GONE
-//        viewModel.viewModelScope.launch {
-//            if (!viewModel.isCommonHealthAvailable(requireContext())) {
-//                Toast.makeText(requireContext(), "Please make sure CommonHealth is installed and setup", Toast.LENGTH_LONG).show()
-//                return@launch
-//            }
-//        }
 
         viewModel.resultsLiveData.observe(this) { resultsMap ->
             resultsMap[dataType]?.let {
