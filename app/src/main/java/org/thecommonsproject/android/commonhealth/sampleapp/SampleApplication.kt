@@ -42,11 +42,17 @@ class SampleApplication: Application() {
             "secure_namespaced_key_value_store"
         )
 
-        CommonHealthStore.initialize(
-            application,
-            configuration,
-            namespacedKeyValueStore
-        )
+        //if initialization fails, halt
+        //client applications need to decide how to handle this
+        try {
+            CommonHealthStore.initialize(
+                application,
+                configuration,
+                namespacedKeyValueStore
+            )
+        } catch (e: Exception) {
+            throw RuntimeException("Cannot initialize CommonHealthStore. Halting...")
+        }
 
     }
 

@@ -23,6 +23,7 @@ import org.thecommonsproject.android.commonhealth.sampleapp.MainViewModel
 import org.thecommonsproject.android.commonhealth.sampleapp.R
 import org.thecommonsproject.android.commonhealth.sampleapp.getVmFactory
 import org.thecommonsproject.android.commonhealthclient.AuthorizationManagementActivity
+import org.thecommonsproject.android.commonhealthclient.CommonHealthAuthorizationActivityResponse
 
 /**
  * A simple [Fragment] subclass.
@@ -126,6 +127,9 @@ class CategoryListFragment : Fragment() {
                     Toast.makeText(requireContext(), "Exceeds maximum allowed scope", Toast.LENGTH_LONG).show()
                     authorizeButton.isEnabled = false
                 }
+                CommonHealthAuthorizationStatus.connectionExpired -> {
+                    authorizeButton.isEnabled = true
+                }
             }
 
             if (authorizationStatus == CommonHealthAuthorizationStatus.unnecessary) {
@@ -139,31 +143,28 @@ class CategoryListFragment : Fragment() {
         when(requestCode) {
             CH_AUTH -> {
 
-                when(resultCode) {
-                    AuthorizationManagementActivity.SUCCESS -> {
+                //process response
+                when(val response = CommonHealthAuthorizationActivityResponse.fromActivityResult(resultCode, data)) {
+                    null -> super.onActivityResult(requestCode, resultCode, data)
+                    is CommonHealthAuthorizationActivityResponse.Success -> {
                         Toast.makeText(context, "Authorization Succeeded", Toast.LENGTH_SHORT).show()
-                        authorizeButton.isEnabled = false
                     }
-                    AuthorizationManagementActivity.USER_CANCELED -> {
+                    is CommonHealthAuthorizationActivityResponse.UserCanceled -> {
                         Toast.makeText(context, "User Canceled", Toast.LENGTH_SHORT).show()
-                        authorizeButton.isEnabled = true
                     }
-                    AuthorizationManagementActivity.FAILURE -> {
+                    is CommonHealthAuthorizationActivityResponse.Failure -> {
+                        val errorMessage = response.errorMessage ?: "Authorization Failed"
+                        Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
 
-                        when (val exception = data?.getSerializableExtra(AuthorizationManagementActivity.EXTRA_AUTH_FAILURE_EXCEPTION)) {
-                            is InterappException.ClientApplicationValidationFailed -> {
-                                val message = exception.message ?: "Authorization Failed"
-                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                            }
-                            else -> Toast.makeText(context, "Authorization Failed", Toast.LENGTH_SHORT).show()
+                        // Optionally take additional action based on exception
+                        when(response.exception) {
+                            is InterappException.ClientApplicationValidationFailed -> { }
+                            is InterappException.AuthError -> { }
+                            else -> { }
                         }
-
-                    }
-                    else -> {
-                        Toast.makeText(context, "Authorization Not Determined", Toast.LENGTH_SHORT).show()
                     }
                 }
-                //process result
+
                 updateUI()
                 return
             }
