@@ -16,8 +16,8 @@ This quick start guide is geared towards participants in our closed beta program
 The CommonHealth Client SDK consists of two modules: commonhealthclient and common. Commonhealthclient contains the bulk of functionality for the SDK, while common types shared between the CommonHealth application and the CommonHealth Client SDK. You'll need to add the following to your application's list of dependencies:
 
 ```
-implementation "org.thecommonsproject.commonhealth:common:0.2.0"
-implementation "org.thecommonsproject.commonhealth:commonhealthclient:0.2.0"
+implementation "org.thecommonsproject.commonhealth:common:0.3.0"
+implementation "org.thecommonsproject.commonhealth:commonhealthclient:0.3.0"
 ```
 
 The artifacts currently reside in our organization's bintray repo, but at some point these will be migrated to jcenter. In the mean time, you'll need to add the following maven repository to your list of repositories, typically defined in the project's `gradle.build` file:
@@ -173,12 +173,13 @@ suspend fun checkAuthorizationStatus(
 ): CommonHealthAuthorizationStatus
 ```
 
-The `CommonHealthAuthorizationStatus` enum defines 4 values:
+The `CommonHealthAuthorizationStatus` enum defines 5 values:
 
  - `shouldRequest`
  - `unnecessary`
  - `cannotAuthorize`
  - `exceedsMaximumAllowedScope`
+ - `connectionExpired`
 
 The `shouldRequest` value means that the application needs to request authorization in order to query resources specified in the scope request.
 
@@ -188,9 +189,11 @@ The `cannotAuthorize` value means that either the CommonHealth app is not availa
 
 The `exceedsMaximumAllowedScope` value means that in production environments, the CommonHealth application is in safe mode and the requested scope exceeds the scope defined in your CommonHealth registration.
 
+The `connectionExpired` value means that connection lifetime (90 days) has expired. You may request authorization again. The user may also renew the connection from within CommonHealth.
+
 ### Authorize
 
-Authorization is performed by launching the `AuthorizationManagementActivity`. To do so, create an intent using the `AuthorizationManagementActivity` static method `createStartForResultIntent`, passing in an authorization request. You then start the activity using the `startActivityForResult` like you typically would for any activity. Note that you will also need to implement the `onActivityResult` method of the calling Activity or Fragment to get the status when `AuthorizationManagementActivity` finishes.
+Authorization is performed by launching the `AuthorizationManagementActivity`. To do so, create an intent using the `AuthorizationManagementActivity` static method `createStartForResultIntent`, passing in an authorization request. You then start the activity using the `startActivityForResult` like you typically would for any activity. Note that you will also need to implement the `onActivityResult` method of the calling Activity or Fragment to get the status when `AuthorizationManagementActivity` finishes. `CommonHealthAuthorizationActivityResponse.fromActivityResult` can be used to convert the response into a more developer friendly object.
 
 The following sample launches the `AuthorizationManagementActivity`:
 
@@ -215,31 +218,31 @@ The following sample implements the Fragment's `onActivityResult` method:
 ```
 override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
     when(requestCode) {
-        REQUEST_CODE -> {
+        CH_AUTH -> {
 
-            when(resultCode) {
-                AuthorizationManagementActivity.SUCCESS -> {
-                    // authorization was successful, we can now fetch data from CommonHealth
+            //process response
+            when(val response = CommonHealthAuthorizationActivityResponse.fromActivityResult(resultCode, data)) {
+                null -> super.onActivityResult(requestCode, resultCode, data)
+                is CommonHealthAuthorizationActivityResponse.Success -> {
+                    Toast.makeText(context, "Authorization Succeeded", Toast.LENGTH_SHORT).show()
                 }
-                AuthorizationManagementActivity.USER_CANCELED -> {
-                    // User canceled authorization, retrying permitted
+                is CommonHealthAuthorizationActivityResponse.UserCanceled -> {
+                    Toast.makeText(context, "User Canceled", Toast.LENGTH_SHORT).show()
                 }
-                AuthorizationManagementActivity.FAILURE -> {
-                    //authorization failed, check the failure exception
-                    when (val exception = 
-                        data?.getSerializableExtra(AuthorizationManagementActivity.EXTRA_AUTH_FAILURE_EXCEPTION)) {
-                        is InterappException.ClientApplicationValidationFailed -> {
-                            val message = exception.message ?: "Authorization Failed"
-                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                        }
-                        else -> Toast.makeText(context, "Authorization Failed", Toast.LENGTH_SHORT).show()
+                is CommonHealthAuthorizationActivityResponse.Failure -> {
+                    val errorMessage = response.errorMessage ?: "Authorization Failed"
+                    Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+
+                    // Optionally take additional action based on exception
+                    when(response.exception) {
+                        is InterappException.ClientApplicationValidationFailed -> { }
+                        is InterappException.AuthError -> { }
+                        else -> { }
                     }
                 }
-                else -> {
-                    //Authorization not determined
-                    Toast.makeText(context, "Authorization Not Determined", Toast.LENGTH_SHORT).show()
-                }
             }
+
+            updateUI()
             return
         }
         else -> {
@@ -278,6 +281,14 @@ See `ResourceListFragment` for an example implementation of the data query build
 ## Registering with CommonHealth
 
 Registering with CommonHealth is not required to begin testing integrations with CommonHealth. However, if you have a client application that you would like to use in production environments, you'll need to register the application with CommonHealth. This is similar to registering an OAuth client, where you would specify information such as required scope, authorization redirect URI, etc. Please reach out to info [at] commonhealth.org for more information.
+
+## Upgrading from v0.2.0 to v0.3.0
+`v0.3.0` introduced a number of changes:
+
+ - Introduced the `CommonHealthAuthorizationActivityResponse` class to assist with decoding responses from `AuthorizationManagementActivity`.
+ - Connections now timeout after 90 days. After that, the client application will need to request authorization again OR the user can also renew the connection via client application detail view in the CommonHealth application. If the connection has timed out, the `checkAuthorizationStatus` method will return `CommonHealthAuthorizationStatus.connectionExpired`.
+ - The `readSampleQuery` performs additional validation on `before` and `after` parameters.
+ - Public `CommonHealthStore` methods have been annotated to indicate that they throw.
 
 ## Upgrading from v0.1.0 to v0.2.0
 

@@ -85,11 +85,15 @@ class MainViewModel(
     suspend fun checkAuthorizationStatus(
         context: Context
     ) : CommonHealthAuthorizationStatus {
-        return commonHealthStore.checkAuthorizationStatus(
-            context,
-            connectionAlias,
-            scopeRequest
-        )
+        return try {
+            commonHealthStore.checkAuthorizationStatus(
+                context,
+                connectionAlias,
+                scopeRequest
+            )
+        } catch (e: Exception) {
+            CommonHealthAuthorizationStatus.cannotAuthorize
+        }
     }
 
     fun generateAuthIntent(
@@ -143,7 +147,12 @@ class MainViewModel(
     }
 
     suspend fun isCommonHealthAvailable(context: Context): Boolean {
-        return commonHealthStore.isCommonHealthAvailable(context)
+        return try {
+            commonHealthStore.isCommonHealthAvailable(context)
+        }
+        catch (e: Exception) {
+            false
+        }
     }
 
     fun prettyPrintJSON(jsonString: String): String {
