@@ -16,8 +16,8 @@ This quick start guide is geared towards participants in our closed beta program
 The CommonHealth Client SDK consists of two modules: commonhealthclient and common. Commonhealthclient contains the bulk of functionality for the SDK, while common types shared between the CommonHealth application and the CommonHealth Client SDK. You'll need to add the following to your application's list of dependencies:
 
 ```
-implementation "org.thecommonsproject.commonhealth:common:0.3.0"
-implementation "org.thecommonsproject.commonhealth:commonhealthclient:0.3.0"
+implementation "org.thecommonsproject.commonhealth:common:0.4.0"
+implementation "org.thecommonsproject.commonhealth:commonhealthclient:0.4.0"
 ```
 
 The artifacts currently reside in our organization's bintray repo, but at some point these will be migrated to jcenter. In the mean time, you'll need to add the following maven repository to your list of repositories, typically defined in the project's `gradle.build` file:
@@ -281,6 +281,9 @@ See `ResourceListFragment` for an example implementation of the data query build
 ## Registering with CommonHealth
 
 Registering with CommonHealth is not required to begin testing integrations with CommonHealth. However, if you have a client application that you would like to use in production environments, you'll need to register the application with CommonHealth. This is similar to registering an OAuth client, where you would specify information such as required scope, authorization redirect URI, etc. Please reach out to info [at] commonhealth.org for more information.
+
+## Upgrading from v0.3.0 to v0.4.0
+No functional changes to the API were introduced in `v0.4.0`.
 
 ## Upgrading from v0.2.0 to v0.3.0
 `v0.3.0` introduced a number of changes:
