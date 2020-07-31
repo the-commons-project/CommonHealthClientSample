@@ -130,6 +130,10 @@ class CategoryListFragment : Fragment() {
                 CommonHealthAuthorizationStatus.connectionExpired -> {
                     authorizeButton.isEnabled = true
                 }
+                CommonHealthAuthorizationStatus.inactive -> {
+                    Toast.makeText(requireContext(), "The application is inactive", Toast.LENGTH_LONG).show()
+                    authorizeButton.isEnabled = false
+                }
             }
 
             if (authorizationStatus == CommonHealthAuthorizationStatus.unnecessary) {

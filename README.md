@@ -16,13 +16,17 @@ This quick start guide is geared towards participants in our closed beta program
 The CommonHealth Client SDK consists of two modules: commonhealthclient and common. Commonhealthclient contains the bulk of functionality for the SDK, while common types shared between the CommonHealth application and the CommonHealth Client SDK. You'll need to add the following to your application's list of dependencies:
 
 ```
-implementation "org.thecommonsproject.commonhealth:common:0.4.0"
-implementation "org.thecommonsproject.commonhealth:commonhealthclient:0.4.0"
+implementation "org.thecommonsproject.commonhealth:common:0.4.4"
+implementation "org.thecommonsproject.commonhealth:commonhealthclient:0.4.4"
 ```
 
 The artifacts currently reside in our organization's bintray repo, but at some point these will be migrated to jcenter. In the mean time, you'll need to add the following maven repository to your list of repositories, typically defined in the project's `gradle.build` file:
 
 `maven { url "https://dl.bintray.com/thecommonsproject/CommonHealth" }`
+
+Additionally, some dependency artifacts are served by Jitpack, so you will also need to add the following maven repository:
+
+`maven { url "https://jitpack.io" }`
 
 ### Manifest Placeholders
 
@@ -137,7 +141,7 @@ If this method returns false, you may need to instruct the user to install and o
 
 Client applications should follow the principle of least privilege and only request access to resources deemed truly necessary. The production version of CommonHealth requires that applications are registered and their scope of access does not exceed their registered values. During the development process, the developer version of CommonHealth does not perform this check.
 
-Client applications must define a `ScopeRequest`, which encapsulates a set of `Scope` objects. Each `Scope` object contains a data type (`DataType`) and an access type (`Scope.Access`). `ScopeRequest` contains a `Builder` class to help with implementation.
+Client applications must define a `ScopeRequest`, which encapsulates a set of `Scope` objects. Each `Scope` object **must** contain a data type (`DataType`) an access type (`Scope.Access`). If you would like to limit the scope of access to a defined set of codes, you may also provide a list of `ScopedCodeAllowListEntry` objects. `ScopeRequest` contains a `Builder` class to help with implementation.
 
 The following sample creates a `ScopeRequest` object requesting read access to all currently available clinical data types:
 
@@ -161,6 +165,24 @@ val scopeRequest: ScopeRequest by lazy {
 }
 ```
 
+The following sample creates a `ScopeRequest` object requesting read access to lab results coded with LOINC codes `2339-0` and `49765-1`:
+
+```
+ val scopeRequestByCodes: ScopeRequest = ScopeRequest.Builder()
+    .add(
+        Scope(
+            DataType.ClinicalResource.LaboratoryResultsResource, 
+            Scope.Access.READ, 
+            listOf(
+                ScopedCodeAllowListEntry(
+                    codingSystem = "http://loinc.org",
+                    codes = listOf("2339-0", "49765-1")
+                )
+            )
+        )
+    ).build()
+```
+
 ### Check the authorization status
 
 The `CommonHealthStore` class provides the `checkAuthorizationStatus` method that determines the current authorization status and returns an enum that you can use to determine whether authorization is needed for the specified scope request. The method signature is:
@@ -173,13 +195,14 @@ suspend fun checkAuthorizationStatus(
 ): CommonHealthAuthorizationStatus
 ```
 
-The `CommonHealthAuthorizationStatus` enum defines 5 values:
+The `CommonHealthAuthorizationStatus` enum defines the following values:
 
  - `shouldRequest`
  - `unnecessary`
  - `cannotAuthorize`
  - `exceedsMaximumAllowedScope`
  - `connectionExpired`
+ - `inactive`
 
 The `shouldRequest` value means that the application needs to request authorization in order to query resources specified in the scope request.
 
@@ -190,6 +213,8 @@ The `cannotAuthorize` value means that either the CommonHealth app is not availa
 The `exceedsMaximumAllowedScope` value means that in production environments, the CommonHealth application is in safe mode and the requested scope exceeds the scope defined in your CommonHealth registration.
 
 The `connectionExpired` value means that connection lifetime (90 days) has expired. You may request authorization again. The user may also renew the connection from within CommonHealth.
+
+The `inactive` value indicates that the CommonHealth team has deactivated your application across all users. Please contact CommonHealth support for more information.
 
 ### Authorize
 
@@ -265,7 +290,8 @@ suspend fun readSampleQuery(
     connectionAlias: String,
     dataTypes: Set<DataType>,
     before: Date? = null,
-    after: Date? = null
+    after: Date? = null,
+    fetchedAfter: Date? = null
 ): List<DataQueryResult>
 ```
 
@@ -281,6 +307,17 @@ See `ResourceListFragment` for an example implementation of the data query build
 ## Registering with CommonHealth
 
 Registering with CommonHealth is not required to begin testing integrations with CommonHealth. However, if you have a client application that you would like to use in production environments, you'll need to register the application with CommonHealth. This is similar to registering an OAuth client, where you would specify information such as required scope, authorization redirect URI, etc. Please reach out to info [at] commonhealth.org for more information.
+
+## Upgrading from v0.4.0 to v0.4.4
+`v0.4.4` introduced a small number of changes to the API:
+
+ - Scope requests can now be limited to a specific set of codes within a data type.
+ - The `inactive` value was added to the `CommonHealthAuthorizationStatus` enum.
+ - The optional `fetchedAfter` parameter was added to the `readSampleQuery` interface method. This parameter can be used to limit responses to resources added or updated after a certain date.
+
+Additionally, the following maven repo is now required:
+
+    maven { url "https://jitpack.io" }
 
 ## Upgrading from v0.3.0 to v0.4.0
 No functional changes to the API were introduced in `v0.4.0`.
