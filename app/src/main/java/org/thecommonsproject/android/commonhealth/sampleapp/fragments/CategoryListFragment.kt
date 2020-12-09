@@ -24,6 +24,7 @@ import org.thecommonsproject.android.commonhealth.sampleapp.R
 import org.thecommonsproject.android.commonhealth.sampleapp.getVmFactory
 import org.thecommonsproject.android.commonhealthclient.AuthorizationManagementActivity
 import org.thecommonsproject.android.commonhealthclient.CommonHealthAuthorizationActivityResponse
+import org.thecommonsproject.android.commonhealthclient.CommonHealthAvailability
 
 /**
  * A simple [Fragment] subclass.
@@ -101,10 +102,18 @@ class CategoryListFragment : Fragment() {
 
     private fun updateUI() {
         viewModel.viewModelScope.launch {
-            if (!viewModel.isCommonHealthAvailable(requireContext())) {
-                Toast.makeText(requireContext(), "Please make sure CommonHealth is installed and setup", Toast.LENGTH_LONG).show()
-                authorizeButton.isEnabled = false
-                return@launch
+            when(viewModel.getCommonHealthAvailability(requireContext())) {
+                CommonHealthAvailability.AVAILABLE -> { }
+                CommonHealthAvailability.NOT_INSTALLED,
+                CommonHealthAvailability.ACCOUNT_NOT_CONFIGURED_FOR_SHARING -> {
+                    Toast.makeText(
+                        requireContext(),
+                        "Please make sure CommonHealth is installed and setup",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    authorizeButton.isEnabled = false
+                    return@launch
+                }
             }
 
             val authorizationStatus = viewModel.checkAuthorizationStatus(

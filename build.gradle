@@ -41,7 +41,7 @@ ext {
     targetSdkVersion = 29
     compileSdkVersion = 29
 
-    commonHealthVersion = '0.4.4'
+    commonHealthVersion = '0.4.8'
 
     appCompatVersion = '1.1.0'
     androidXVersion = '1.1.0'

@@ -12,13 +12,14 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.actor
 import org.thecommonsproject.android.common.interapp.CommonHealthAuthorizationStatus
-import org.thecommonsproject.android.common.interapp.dataquery.response.ClinicalDataQueryResult
 import org.thecommonsproject.android.common.interapp.dataquery.response.DataQueryResult
+import org.thecommonsproject.android.common.interapp.dataquery.response.FHIRSampleDataQueryResult
 import org.thecommonsproject.android.common.interapp.scope.DataType
 import org.thecommonsproject.android.common.interapp.scope.Scope
 import org.thecommonsproject.android.common.interapp.scope.ScopeRequest
 import org.thecommonsproject.android.commonhealthclient.AuthorizationManagementActivity
 import org.thecommonsproject.android.commonhealthclient.AuthorizationRequest
+import org.thecommonsproject.android.commonhealthclient.CommonHealthAvailability
 import org.thecommonsproject.android.commonhealthclient.CommonHealthStore
 import timber.log.Timber
 import java.util.*
@@ -50,12 +51,12 @@ class MainViewModel(
     }
 
     sealed class ResultHolderMessage {
-        class SetResults(val resourceType: DataType.ClinicalResource, val results: List<ClinicalDataQueryResult>) : ResultHolderMessage()
+        class SetResults(val resourceType: DataType.ClinicalResource, val results: List<FHIRSampleDataQueryResult>) : ResultHolderMessage()
     }
 
 
-    private var resultsMap: Map<DataType.ClinicalResource, List<ClinicalDataQueryResult>> = emptyMap()
-    var resultsLiveData: MutableLiveData<Map<DataType.ClinicalResource, List<ClinicalDataQueryResult>>> = MutableLiveData(resultsMap)
+    private var resultsMap: Map<DataType.ClinicalResource, List<FHIRSampleDataQueryResult>> = emptyMap()
+    var resultsLiveData: MutableLiveData<Map<DataType.ClinicalResource, List<FHIRSampleDataQueryResult>>> = MutableLiveData(resultsMap)
     // This function launches a new counter actor
     fun CoroutineScope.resultsHolderActor() = actor<ResultHolderMessage> {
 
@@ -132,7 +133,7 @@ class MainViewModel(
         val jobs = typesToFetch.map { clinicalResource ->
 
             CoroutineScope(Dispatchers.IO).launch {
-                val results = fetchData(context, clinicalResource).mapNotNull { it as? ClinicalDataQueryResult }
+                val results = fetchData(context, clinicalResource).mapNotNull { it as? FHIRSampleDataQueryResult }
                 resultsHolderActor!!.send(
                     ResultHolderMessage.SetResults(
                         clinicalResource,
@@ -146,13 +147,8 @@ class MainViewModel(
         jobs.joinAll()
     }
 
-    suspend fun isCommonHealthAvailable(context: Context): Boolean {
-        return try {
-            commonHealthStore.isCommonHealthAvailable(context)
-        }
-        catch (e: Exception) {
-            false
-        }
+    suspend fun getCommonHealthAvailability(context: Context): CommonHealthAvailability {
+        return commonHealthStore.getCommonHealthAvailability(context)
     }
 
     fun prettyPrintJSON(jsonString: String): String {

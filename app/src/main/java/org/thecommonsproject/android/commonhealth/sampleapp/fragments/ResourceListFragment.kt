@@ -16,7 +16,7 @@ import androidx.navigation.fragment.navArgs
 import androidx.navigation.navOptions
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import org.thecommonsproject.android.common.interapp.dataquery.response.ClinicalDataQueryResult
+import org.thecommonsproject.android.common.interapp.dataquery.response.FHIRSampleDataQueryResult
 import org.thecommonsproject.android.common.interapp.scope.DataType
 import org.thecommonsproject.android.commonhealth.sampleapp.MainViewModel
 import org.thecommonsproject.android.commonhealth.sampleapp.R
@@ -49,7 +49,7 @@ class ResourceListFragment : Fragment() {
 
         val navController = findNavController()
 
-        val generateOnClickListener: (ClinicalDataQueryResult) -> View.OnClickListener = { result ->
+        val generateOnClickListener: (FHIRSampleDataQueryResult) -> View.OnClickListener = { result ->
             View.OnClickListener { view ->
                 //prefetch based on selected recordSummaryViewType
 //                dashboardViewModel.prefetchResourceSummariesForType(
@@ -102,11 +102,11 @@ class ResourceListFragment : Fragment() {
     }
 
     class ContentAdapter(
-        private val generateOnClickListener: (ClinicalDataQueryResult) -> View.OnClickListener
+        private val generateOnClickListener: (FHIRSampleDataQueryResult) -> View.OnClickListener
     ) : RecyclerView.Adapter<ResourceListItemViewHolder>() {
 
-        private var resources: List<ClinicalDataQueryResult> = emptyList()
-        fun updateResources(newResources: List<ClinicalDataQueryResult>) {
+        private var resources: List<FHIRSampleDataQueryResult> = emptyList()
+        fun updateResources(newResources: List<FHIRSampleDataQueryResult>) {
             resources = newResources
             notifyDataSetChanged()
         }
