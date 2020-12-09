@@ -3,6 +3,7 @@ package org.thecommonsproject.android.commonhealth.sampleapp
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,6 +15,7 @@ import kotlinx.coroutines.channels.actor
 import org.thecommonsproject.android.common.interapp.CommonHealthAuthorizationStatus
 import org.thecommonsproject.android.common.interapp.dataquery.response.DataQueryResult
 import org.thecommonsproject.android.common.interapp.dataquery.response.FHIRSampleDataQueryResult
+import org.thecommonsproject.android.common.interapp.dataquery.response.RecordUpdateQueryResult
 import org.thecommonsproject.android.common.interapp.scope.DataType
 import org.thecommonsproject.android.common.interapp.scope.Scope
 import org.thecommonsproject.android.common.interapp.scope.ScopeRequest
@@ -52,18 +54,19 @@ class MainViewModel(
 
     sealed class ResultHolderMessage {
         class SetResults(val resourceType: DataType.ClinicalResource, val results: List<FHIRSampleDataQueryResult>) : ResultHolderMessage()
+        class SetRecordUpdateResults(val results: List<RecordUpdateQueryResult>) : ResultHolderMessage()
     }
-
 
     private var resultsMap: Map<DataType.ClinicalResource, List<FHIRSampleDataQueryResult>> = emptyMap()
     var resultsLiveData: MutableLiveData<Map<DataType.ClinicalResource, List<FHIRSampleDataQueryResult>>> = MutableLiveData(resultsMap)
+    val recordUpdatesLiveData = MutableLiveData<List<RecordUpdateQueryResult>>()
+
     // This function launches a new counter actor
     fun CoroutineScope.resultsHolderActor() = actor<ResultHolderMessage> {
 
         for (msg in channel) { // iterate over incoming messages
             when (msg) {
                 is ResultHolderMessage.SetResults -> {
-
                     when (val existingResults = resultsMap[msg.resourceType]) {
                         null -> {}
                         else -> { assert(existingResults.count() == msg.results.count()) }
@@ -71,6 +74,9 @@ class MainViewModel(
 
                     resultsMap = resultsMap.plus(Pair(msg.resourceType, msg.results))
                     resultsLiveData.postValue(resultsMap)
+                }
+                is ResultHolderMessage.SetRecordUpdateResults -> {
+                    recordUpdatesLiveData.postValue(msg.results)
                 }
             }
         }
@@ -121,17 +127,26 @@ class MainViewModel(
                 setOf(clinicalResource)
             )
         } catch (e: Throwable) {
-            Log.w(TAG, "Exception fetching data: ", e)
+            Timber.e( e, "Exception fetching data")
+            emptyList()
+        }
+    }
+
+    private suspend fun fetchRecordUpdates(context: Context) : List<RecordUpdateQueryResult> {
+        return try {
+            commonHealthStore.getRecordUpdates(
+                context,
+                connectionAlias
+            )
+        } catch (e: Throwable) {
+            Timber.e(e, "Exception fetching record updates")
             emptyList()
         }
     }
 
     suspend fun fetchAllData(context: Context) {
-
-
         val typesToFetch = allDataTypes
-        val jobs = typesToFetch.map { clinicalResource ->
-
+        val sampleQueryFetchJobs = typesToFetch.map { clinicalResource ->
             CoroutineScope(Dispatchers.IO).launch {
                 val results = fetchData(context, clinicalResource).mapNotNull { it as? FHIRSampleDataQueryResult }
                 resultsHolderActor!!.send(
@@ -141,10 +156,16 @@ class MainViewModel(
                     )
                 )
             }
-
         }
 
-        jobs.joinAll()
+        val recordUpdatesFetchJob = CoroutineScope(Dispatchers.IO).launch {
+            val recordUpdates = fetchRecordUpdates(context)
+            resultsHolderActor!!.send(
+                ResultHolderMessage.SetRecordUpdateResults(recordUpdates)
+            )
+        }
+
+        (listOf(recordUpdatesFetchJob) + sampleQueryFetchJobs).joinAll()
     }
 
     suspend fun getCommonHealthAvailability(context: Context): CommonHealthAvailability {

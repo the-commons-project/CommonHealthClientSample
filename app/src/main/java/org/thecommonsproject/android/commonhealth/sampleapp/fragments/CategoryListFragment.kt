@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.launch
 import org.thecommonsproject.android.common.interapp.CommonHealthAuthorizationStatus
 import org.thecommonsproject.android.common.interapp.InterappException
+import org.thecommonsproject.android.common.interapp.dataquery.response.RecordUpdateQueryResult
 import org.thecommonsproject.android.common.interapp.scope.DataType
 import org.thecommonsproject.android.commonhealth.sampleapp.MainViewModel
 import org.thecommonsproject.android.commonhealth.sampleapp.R
@@ -25,6 +26,7 @@ import org.thecommonsproject.android.commonhealth.sampleapp.getVmFactory
 import org.thecommonsproject.android.commonhealthclient.AuthorizationManagementActivity
 import org.thecommonsproject.android.commonhealthclient.CommonHealthAuthorizationActivityResponse
 import org.thecommonsproject.android.commonhealthclient.CommonHealthAvailability
+import timber.log.Timber
 
 /**
  * A simple [Fragment] subclass.
@@ -92,9 +94,16 @@ class CategoryListFragment : Fragment() {
 
         spinner = view.findViewById(R.id.progress_bar)
 
-        viewModel.resultsLiveData.observe(this) { resultsMap ->
+        viewModel.resultsLiveData.observe(viewLifecycleOwner) { resultsMap ->
             val resultsCounts = resultsMap.mapValues { it.value.count() }
             adapter.updateResultsCounts(resultsCounts)
+        }
+
+        viewModel.recordUpdatesLiveData.observe(viewLifecycleOwner) {
+            val groupedUpdates = it.groupBy { update -> update.updateType }
+            val numberInserts = groupedUpdates[RecordUpdateQueryResult.UpdateType.UPDATE_OR_INSERT]?.size ?: 0
+            val numberDeletions = groupedUpdates[RecordUpdateQueryResult.UpdateType.DELETION]?.size ?: 0
+            Timber.d("Received ${numberInserts + numberDeletions} updates: $numberInserts insert / updates, and $numberDeletions deletions.")
         }
 
         updateUI()
