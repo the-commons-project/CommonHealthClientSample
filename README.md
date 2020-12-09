@@ -4,7 +4,7 @@ The CommonHealth Client SDK provides an interface that allows applications to ac
 
 The CommonHealth Client SDK is in closed beta. If you would like to participate in our beta program, please reach out to info [at] commonhealth.org. 
 
-While we consider the SDK to be relatively stable, this is pre-release software, so the interfaces are subject to change based on evolving requirements and developer feedback. We're currently investigating way to make it easier to remove configuration dependencies, so if you find anything particularly burdensome or confusing, please let us know.
+While we consider the SDK to be relatively stable, this is pre-release software, so the interfaces are subject to change based on evolving requirements and developer feedback. We're currently investigating ways to make it easier to remove configuration dependencies, so if you find anything particularly burdensome or confusing, please let us know by either emailing us or opening a Github issue.
 
 ## Audience 
 This quick start guide is geared towards participants in our closed beta program. This guide assumes that you have the CommonHealth developer edition installed on your device and you have gone through the enrollment process in the application.
@@ -64,7 +64,7 @@ The interapplication data sharing functionality of CommonHealth leverages native
 </receiver>
 ```
 
-Our authorziation process is inspired by OAuth and requires that the `RedirectUriReceiverActivity` receive a redirect from CommonHealth. Applications must define the `interappAuthRedirectScheme`, `interappAuthRedirectHost`, and `interappAuthRedirectPath` manifest placeholders in the app's `build.gradle` file, and the compiled URL must match the `authorizationCallbackUri` in the `CommonHealthStoreConfiguration` object (see below). For example, defining the following manifest placeholders in your `build.gradle` file:
+Our authorization process is inspired by OAuth and requires that the `RedirectUriReceiverActivity` receive a redirect from CommonHealth. Applications must define the `interappAuthRedirectScheme`, `interappAuthRedirectHost`, and `interappAuthRedirectPath` manifest placeholders in the app's `build.gradle` file, and the compiled URL must match the `authorizationCallbackUri` in the `CommonHealthStoreConfiguration` object (see below). For example, defining the following manifest placeholders in your `build.gradle` file:
 
 ```
 manifestPlaceholders.interappAuthRedirectScheme = "org.thecommonsproject.android.commonhealth.sampleapp"
@@ -83,13 +83,30 @@ The client application must initialize the `CommonHealthStore` singleton by prov
 For development, you can use the following to create the `CommonHealthStoreConfiguration` object:
 
 ```
+val notificationPreferences = NotificationPreferences(
+    subscribedNotificationTypes = setOf(
+        CommonHealthNotificationType.AUTHORIZATION_FLOW_COMPLETED_WITH_RESULT
+    ),
+    subscriber = { notification ->
+        when(notification) {
+            is CommonHealthNotification.AuthorizationCompleted -> {
+                when(val response = notification.userResponse) {
+                    is CommonHealthAuthorizationActivityResponse.Failure -> { }
+                    is CommonHealthAuthorizationActivityResponse.Success -> { }
+                    is CommonHealthAuthorizationActivityResponse.UserCanceled -> { }
+                }
+            }
+        }
+    }
+)
 val configuration = CommonHealthStoreConfiguration(
     appId = BuildConfig.APPLICATION_ID,
     commonHealthAppId = "org.thecommonsproject.android.phr.developer",
     developerModeEnabled = true,
     attestationServiceConfiguration = null,
     commonHealthAuthorizationUri = "org.thecommonsproject.android.phr://interapp/auth",
-    authorizationCallbackUri = "org.thecommonsproject.android.commonhealth.sampleapp://interapp/redirect"
+    authorizationCallbackUri = "org.thecommonsproject.android.commonhealth.sampleapp://interapp/redirect",
+    notificationPreferences = notificationPreferences
 )
 ```
 
@@ -129,13 +146,24 @@ You'll likely notice that many of the interface methods require a `connectionAli
 
 ### Check that CommonHealth is available
 
-The `CommonHealthStore` class provides the `isCommonHealthAvailable` method that determines if the CommonHealth application is installed on the user's device and it is set up to share data with client application. The method signature is:
+The `CommonHealthStore` class provides the `getCommonHealthAvailability` method that can help determine how (or how not) to interact with CommonHealth:
 
 ```
-suspend fun isCommonHealthAvailable(context: Context): Boolean
+val chStore = CommonHealthStore.getSharedInstance()
+val chAvailability = chStore.getCommonHealthAvailability(context)
+when(chAvailability) {
+    CommonHealthAvailability.NOT_INSTALLED -> { } // show install UX
+    CommonHealthAvailability.ACCOUNT_NOT_CONFIGURED_FOR_SHARING -> { } // this can indicate that a user has disabled sharing entirely or that their device is unsuitable for sharing (ex. device is rooted)
+    CommonHealthAvailability.AVAILABLE -> { } // Suitable for authorization or querying if consent has been given
+}
 ```
 
-If this method returns false, you may need to instruct the user to install and onboard with the CommonHealth app.
+If CommonHealth is not installed, the CommonHealthStore also provides a convenience method to direct a user to Google Play to install it. It is invoked like so:
+
+```
+val chInstallIntent = chStore.buildCommonHealthInstallIntent(context)
+startActivity(chInstallIntent)
+```
 
 ### Define the scope of access
 
@@ -218,7 +246,7 @@ The `inactive` value indicates that the CommonHealth team has deactivated your a
 
 ### Authorize
 
-Authorization is performed by launching the `AuthorizationManagementActivity`. To do so, create an intent using the `AuthorizationManagementActivity` static method `createStartForResultIntent`, passing in an authorization request. You then start the activity using the `startActivityForResult` like you typically would for any activity. Note that you will also need to implement the `onActivityResult` method of the calling Activity or Fragment to get the status when `AuthorizationManagementActivity` finishes. `CommonHealthAuthorizationActivityResponse.fromActivityResult` can be used to convert the response into a more developer friendly object.
+Authorization is performed by launching the `AuthorizationManagementActivity`. To do so, create an intent using the `AuthorizationManagementActivity` static method `createStartForResultIntent`, passing in an authorization request. You then start the activity using the `startActivity` like you typically would for any activity.
 
 The following sample launches the `AuthorizationManagementActivity`:
 
@@ -235,48 +263,12 @@ val intent = AuthorizationManagementActivity.createStartForResultIntent(
     authorizationRequest
 )
 
-startActivityForResult(authIntent, REQUEST_CODE)
+startActivity(authIntent)
 ```
 
-The following sample implements the Fragment's `onActivityResult` method:
+This will initiate an authorization and consent flow in CommonHealth.
 
-```
-override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-    when(requestCode) {
-        CH_AUTH -> {
-
-            //process response
-            when(val response = CommonHealthAuthorizationActivityResponse.fromActivityResult(resultCode, data)) {
-                null -> super.onActivityResult(requestCode, resultCode, data)
-                is CommonHealthAuthorizationActivityResponse.Success -> {
-                    Toast.makeText(context, "Authorization Succeeded", Toast.LENGTH_SHORT).show()
-                }
-                is CommonHealthAuthorizationActivityResponse.UserCanceled -> {
-                    Toast.makeText(context, "User Canceled", Toast.LENGTH_SHORT).show()
-                }
-                is CommonHealthAuthorizationActivityResponse.Failure -> {
-                    val errorMessage = response.errorMessage ?: "Authorization Failed"
-                    Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
-
-                    // Optionally take additional action based on exception
-                    when(response.exception) {
-                        is InterappException.ClientApplicationValidationFailed -> { }
-                        is InterappException.AuthError -> { }
-                        else -> { }
-                    }
-                }
-            }
-
-            updateUI()
-            return
-        }
-        else -> {
-            updateUI()
-            super.onActivityResult(requestCode, resultCode, data)
-        }
-    }
-}
-```
+The authorization response--a success, cancellation, or error--is communicated back through the NotificationPreferences subscriber object registered in the CommonHealthStoreConfiguration bundle.
 
 See `CategoryListFragment` in this repo for a working implementation.
 
@@ -295,18 +287,56 @@ suspend fun readSampleQuery(
 ): List<DataQueryResult>
 ```
 
-As you can see, the method returns a list of `DataQueryResult` instances. For requests for clinical data, these can be cast to `ClinicalDataQueryResult` instances. Each `ClinicalDataQueryResult` instance contains the following:
+As you can see, the method returns a list of `SampleDataQueryResult` instances. For requests for clinical data, these can be cast to `FHIRSampleDataQueryResult` instances. Each `FHIRSampleDataQueryResult` instance contains the following:
 
- - resourceType: DataType.ClinicalResource - the type of the resource
+ - resourceType: DataType.FHIRResource - the type of the resource
  - json: String - JSON string representation of the FHIR resource
  - displayText: String - The primary display text computed from the resource by CommonHealth 
- - secondaryDisplayText: String - The secondary display text computed from the resource by CommonHealth 
+ - secondaryDisplayText: String - The secondary display text computed from the resource by CommonHealth
+ - chId: UUID - A random, stable identifier for this given resource computed by CommonHealth
+ - fhirVersion: String - The given FHIR version corresponding to this resource
 
 See `ResourceListFragment` for an example implementation of the data query building and data fetching process.
+
+### Receiving new data or updates to existing data
+
+As part of the NotificationPreferences configuration in the CommonHealthStoreConfiguration, you can subscribe to various notification types:
+
+ - CommonHealthNotificationType.AUTHORIZATION_FLOW_COMPLETED_WITH_RESULT - notification containing the authorization response / result
+ - CommonHealthNotificationType.NEW_DATA_AVAILABLE - notification informing that new data is available
+
+Upon receiving the NEW_DATA_AVAILABLE notification, you can invoke a method on the CommonHealthStore to receive a list of record updates over a given timeframe:
+
+ ```
+@Throws(InterappException::class)
+ suspend fun getRecordUpdates(
+    context: Context,
+    connectionAlias: String,
+    after: Date? = null,
+    before: Date? = null
+): List<RecordUpdateQueryResult> {
+ ```
+
+ The `after` and `before` optional parameters allow you specify an interval of time from which to receive a list of record update events. Each record update event contains:
+
+ - CHRecordId: UUID - a stable, randomm, CH-generated unique identifier for a given record
+ - updateType: RecordUpdateQueryResult.UpdateType - an enum containing UPDATE_OR_INSERT or DELETION cases
+ - date: Date - timestamp for the given update
+
+ Using these can help you identify when and if you need to pull data from CommonHealth, or if data has been deleted in CommonHealth and should be removed from your local datastore, if persisted.
 
 ## Registering with CommonHealth
 
 Registering with CommonHealth is not required to begin testing integrations with CommonHealth. However, if you have a client application that you would like to use in production environments, you'll need to register the application with CommonHealth. This is similar to registering an OAuth client, where you would specify information such as required scope, authorization redirect URI, etc. Please reach out to info [at] commonhealth.org for more information.
+
+## Upgrading from v0.4.4 to v0.4.8
+`v0.4.8` introduced a number of large changes and enhancements to the API:
+
+ - CommonHealthStoreConfiguration now has a required NotificationPreferences property
+ - AuthorizationResponses are now communicated as a notification to a subscriber contained in the CommonHealthStoreConfiguration
+ - A new `getRecordUpdates` method was added to the CommonHealthStore to help determine changes to the data
+ - A `NEW_DATA_AVAILABLE` notificationType is added to support receiving updates asynchronously from CommonHealth
+ - The `isCommonHealthAvailable` method was removed in favor of the new `getCommonHealthAvailability`
 
 ## Upgrading from v0.4.0 to v0.4.4
 `v0.4.4` introduced a small number of changes to the API:
