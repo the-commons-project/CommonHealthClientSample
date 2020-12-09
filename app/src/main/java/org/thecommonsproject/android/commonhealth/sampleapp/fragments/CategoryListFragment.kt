@@ -1,7 +1,6 @@
 package org.thecommonsproject.android.commonhealth.sampleapp.fragments
 
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -17,14 +16,11 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.launch
 import org.thecommonsproject.android.common.interapp.CommonHealthAuthorizationStatus
-import org.thecommonsproject.android.common.interapp.InterappException
 import org.thecommonsproject.android.common.interapp.dataquery.response.RecordUpdateQueryResult
 import org.thecommonsproject.android.common.interapp.scope.DataType
 import org.thecommonsproject.android.commonhealth.sampleapp.MainViewModel
 import org.thecommonsproject.android.commonhealth.sampleapp.R
 import org.thecommonsproject.android.commonhealth.sampleapp.getVmFactory
-import org.thecommonsproject.android.commonhealthclient.AuthorizationManagementActivity
-import org.thecommonsproject.android.commonhealthclient.CommonHealthAuthorizationActivityResponse
 import org.thecommonsproject.android.commonhealthclient.CommonHealthAvailability
 import timber.log.Timber
 
@@ -36,10 +32,6 @@ class CategoryListFragment : Fragment() {
     private val viewModel by activityViewModels<MainViewModel> { getVmFactory() }
     private lateinit var authorizeButton: Button
     private lateinit var spinner: ProgressBar
-
-    companion object {
-        private val CH_AUTH = 4096
-    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -89,7 +81,7 @@ class CategoryListFragment : Fragment() {
         authorizeButton.isEnabled = false
         authorizeButton.setOnClickListener {
             val authIntent = viewModel.generateAuthIntent(requireContext())
-            startActivityForResult(authIntent, CH_AUTH)
+            startActivity(authIntent)
         }
 
         spinner = view.findViewById(R.id.progress_bar)
@@ -160,43 +152,6 @@ class CategoryListFragment : Fragment() {
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-
-        when(requestCode) {
-            CH_AUTH -> {
-
-                //process response
-                when(val response = CommonHealthAuthorizationActivityResponse.fromActivityResult(resultCode, data)) {
-                    null -> super.onActivityResult(requestCode, resultCode, data)
-                    is CommonHealthAuthorizationActivityResponse.Success -> {
-                        Toast.makeText(context, "Authorization Succeeded", Toast.LENGTH_SHORT).show()
-                    }
-                    is CommonHealthAuthorizationActivityResponse.UserCanceled -> {
-                        Toast.makeText(context, "User Canceled", Toast.LENGTH_SHORT).show()
-                    }
-                    is CommonHealthAuthorizationActivityResponse.Failure -> {
-                        val errorMessage = response.errorMessage ?: "Authorization Failed"
-                        Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
-
-                        // Optionally take additional action based on exception
-                        when(response.exception) {
-                            is InterappException.ClientApplicationValidationFailed -> { }
-                            is InterappException.AuthError -> { }
-                            else -> { }
-                        }
-                    }
-                }
-
-                updateUI()
-                return
-            }
-            else -> {
-                updateUI()
-                super.onActivityResult(requestCode, resultCode, data)
-            }
-        }
-    }
-
     override fun onResume() {
         super.onResume()
         updateUI()
@@ -215,7 +170,7 @@ class CategoryListFragment : Fragment() {
         private val generateOnClickListener: (DataType) -> View.OnClickListener
     ) : RecyclerView.Adapter<CategoryListItemViewHolder>() {
 
-        var resultsCounts: Map<DataType.ClinicalResource, Int>? = null
+        private var resultsCounts: Map<DataType.ClinicalResource, Int>? = null
         fun updateResultsCounts(newResultsCounts: Map<DataType.ClinicalResource, Int>) {
             resultsCounts = newResultsCounts
             notifyDataSetChanged()

@@ -3,8 +3,10 @@ package org.thecommonsproject.android.commonhealth.sampleapp
 import android.app.Application
 import android.content.Context
 import androidx.room.Room
+import net.sqlcipher.database.SupportFactory
 import org.thecommonsproject.android.common.keyvaluestore.SecureNamespacedKeyValueStore
 import org.thecommonsproject.android.common.keyvaluestore.room.KeyValueLocalDataStore
+import org.thecommonsproject.android.common.util.DatabasePassphraseManager
 import org.thecommonsproject.android.commonhealthclient.*
 import org.thecommonsproject.android.commonhealthclient.notification.CommonHealthNotification
 import timber.log.Timber
@@ -13,12 +15,27 @@ class SampleApplication: Application() {
 
     private var database: SampleApplicationDatabase? = null
 
+    private fun getDatabasePassphrase(context: Context) : ByteArray {
+        val passphraseFilePath = context.filesDir.absolutePath.plus("/encryptedDatabasePassphrase")
+        val passphraseManager = DatabasePassphraseManager(
+            passphraseFilePath,
+            64,
+            "passphrase_file"
+        )
+
+        return passphraseManager.getPassphrase()
+    }
+
     private fun createDataBase(context: Context): SampleApplicationDatabase {
+        val passphrase = getDatabasePassphrase(context)
+        val supportFactory = SupportFactory(passphrase)
         val result = Room.databaseBuilder(
             context.applicationContext,
             SampleApplicationDatabase::class.java,
             "SampleApp.db"
-        ).build()
+        )
+            .openHelperFactory(supportFactory)
+            .build()
         database = result
         return result
     }
@@ -40,7 +57,7 @@ class SampleApplication: Application() {
                         when(val response = notification.userResponse) {
                             is CommonHealthAuthorizationActivityResponse.Failure -> {
                                 response.errorMessage?.let {
-                                    Timber.e("Authorization failed with error: ${it}")
+                                    Timber.e("Authorization failed with error: $it")
                                 }
                             }
                             is CommonHealthAuthorizationActivityResponse.Success -> Timber.d("Authorization succeeded at ${notification.notificationTimestamp}")
