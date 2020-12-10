@@ -16,8 +16,8 @@ This quick start guide is geared towards participants in our closed beta program
 The CommonHealth Client SDK consists of two modules: commonhealthclient and common. Commonhealthclient contains the bulk of functionality for the SDK, while common types shared between the CommonHealth application and the CommonHealth Client SDK. You'll need to add the following to your application's list of dependencies:
 
 ```
-implementation "org.thecommonsproject.commonhealth:common:0.4.4"
-implementation "org.thecommonsproject.commonhealth:commonhealthclient:0.4.4"
+implementation "org.thecommonsproject.commonhealth:common:0.4.8"
+implementation "org.thecommonsproject.commonhealth:commonhealthclient:0.4.8"
 ```
 
 The artifacts currently reside in our organization's bintray repo, but at some point these will be migrated to jcenter. In the mean time, you'll need to add the following maven repository to your list of repositories, typically defined in the project's `gradle.build` file:
@@ -319,7 +319,7 @@ Upon receiving the NEW_DATA_AVAILABLE notification, you can invoke a method on t
 
  The `after` and `before` optional parameters allow you specify an interval of time from which to receive a list of record update events. Each record update event contains:
 
- - CHRecordId: UUID - a stable, randomm, CH-generated unique identifier for a given record
+ - CHRecordId: UUID - a stable, random, CH-generated unique identifier for a given record
  - updateType: RecordUpdateQueryResult.UpdateType - an enum containing UPDATE_OR_INSERT or DELETION cases
  - date: Date - timestamp for the given update
 
