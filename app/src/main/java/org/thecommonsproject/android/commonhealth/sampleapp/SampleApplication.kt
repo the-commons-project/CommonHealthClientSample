@@ -3,22 +3,39 @@ package org.thecommonsproject.android.commonhealth.sampleapp
 import android.app.Application
 import android.content.Context
 import androidx.room.Room
+import net.sqlcipher.database.SupportFactory
 import org.thecommonsproject.android.common.keyvaluestore.SecureNamespacedKeyValueStore
 import org.thecommonsproject.android.common.keyvaluestore.room.KeyValueLocalDataStore
-import org.thecommonsproject.android.commonhealthclient.CommonHealthStore
-import org.thecommonsproject.android.commonhealthclient.CommonHealthStoreConfiguration
+import org.thecommonsproject.android.common.util.DatabasePassphraseManager
+import org.thecommonsproject.android.commonhealthclient.*
+import org.thecommonsproject.android.commonhealthclient.notification.CommonHealthNotification
 import timber.log.Timber
 
 class SampleApplication: Application() {
 
     private var database: SampleApplicationDatabase? = null
 
+    private fun getDatabasePassphrase(context: Context) : ByteArray {
+        val passphraseFilePath = context.filesDir.absolutePath.plus("/encryptedDatabasePassphrase")
+        val passphraseManager = DatabasePassphraseManager(
+            passphraseFilePath,
+            64,
+            "passphrase_file"
+        )
+
+        return passphraseManager.getPassphrase()
+    }
+
     private fun createDataBase(context: Context): SampleApplicationDatabase {
+        val passphrase = getDatabasePassphrase(context)
+        val supportFactory = SupportFactory(passphrase)
         val result = Room.databaseBuilder(
             context.applicationContext,
             SampleApplicationDatabase::class.java,
             "SampleApp.db"
-        ).build()
+        )
+            .openHelperFactory(supportFactory)
+            .build()
         database = result
         return result
     }
@@ -26,6 +43,30 @@ class SampleApplication: Application() {
     private fun initializeCommonHealthStore(application: Application) {
 
         val context = application.applicationContext
+        val notificationPreferences = NotificationPreferences(
+            subscribedNotificationTypes = setOf(
+                CommonHealthNotificationType.AUTHORIZATION_FLOW_COMPLETED_WITH_RESULT,
+                CommonHealthNotificationType.NEW_DATA_AVAILABLE
+            ),
+            subscriber = { notification ->
+                when(notification) {
+                    is CommonHealthNotification.NewData -> {
+                        Timber.d("New data available at: ${notification.notificationTimestamp}")
+                    }
+                    is CommonHealthNotification.AuthorizationCompleted -> {
+                        when(val response = notification.userResponse) {
+                            is CommonHealthAuthorizationActivityResponse.Failure -> {
+                                response.errorMessage?.let {
+                                    Timber.e("Authorization failed with error: $it")
+                                }
+                            }
+                            is CommonHealthAuthorizationActivityResponse.Success -> Timber.d("Authorization succeeded at ${notification.notificationTimestamp}")
+                            is CommonHealthAuthorizationActivityResponse.UserCanceled -> Timber.d("User canceled authorization")
+                        }
+                    }
+                }
+            }
+        )
         val configuration = CommonHealthStoreConfiguration(
             appId = BuildConfig.APPLICATION_ID,
             commonHealthAppId = BuildConfig.COMMON_HEALTH_APP_ID,
@@ -33,7 +74,8 @@ class SampleApplication: Application() {
             attestationServiceConfiguration = null,
             commonHealthAuthorizationUri = BuildConfig.INTERAPP_AUTHORIZATION_URI,
             authorizationCallbackUri = BuildConfig.AUTH_CALLBACK_URI,
-            loggingEnabled = true
+            loggingEnabled = true,
+            notificationPreferences = notificationPreferences
         )
 
         val database = database ?: createDataBase(context)
