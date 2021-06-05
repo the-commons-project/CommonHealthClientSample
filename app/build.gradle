@@ -38,6 +38,10 @@ android {
     }
 }
 
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation"org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
@@ -54,8 +58,10 @@ dependencies {
     implementation "androidx.navigation:navigation-fragment-ktx:$navigationVersion"
     implementation "androidx.navigation:navigation-ui-ktx:$navigationVersion"
 
-    implementation"org.thecommonsproject.commonhealth:common:$commonHealthVersion"
-    implementation"org.thecommonsproject.commonhealth:commonhealthclient:$commonHealthVersion"
+//    implementation "org.thecommonsproject:commonhealth-common:$commonHealthVersion"
+//    implementation "org.thecommonsproject:commonhealth-client:$commonHealthVersion"
+    implementation(group: "org.thecommonsproject", name: "commonhealth-common", version: commonHealthVersion, changing: true)
+    implementation(group: "org.thecommonsproject", name: "commonhealth-client", version: commonHealthVersion, changing: true)
 
     //Room
     kapt "androidx.room:room-compiler:$roomVersion"
