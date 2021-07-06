@@ -2,12 +2,24 @@
 
 The CommonHealth Client SDK provides an interface that allows applications to access health data stored in CommonHealth.
 
-The CommonHealth Client SDK is in closed beta. If you would like to participate in our beta program, please reach out to developers [at] commonhealth.org. 
+The CommonHealth Client SDK is in open beta. 
 
 While we consider the SDK to be relatively stable, this is pre-release software, so the interfaces are subject to change based on evolving requirements and developer feedback. We're currently investigating ways to make it easier to remove configuration dependencies, so if you find anything particularly burdensome or confusing, please let us know by either emailing us or opening a Github issue.
 
 ## Audience 
-This quick start guide is geared towards participants in our closed beta program. This guide assumes that you have the CommonHealth developer edition installed on your device and you have gone through the enrollment process in the application.
+This quick start guide is geared towards participants in our closed beta program. This guide assumes that you have CommonHealth Developer Edition installed on your device and you have gone through the enrollment process in the application.
+
+## CommonHealth Developer Edition
+
+CommonHealth Developer Edition is a specialized version of CommonHealth specifically for developers working with the CommonHealth Client SDK. CommonHealth Developer Edition integrates with the [SMART® Health IT Sandbox](https://launch.smarthealthit.org) to provide access to sample patient data. CommonHealth Developer Edition also relaxes some security features which allows the application to be installed and run on an Android emulator (in addition to a physical Android device).
+
+### Installing the CommonHealth Developer Edition
+
+CommonHealth Developer Edition is currently made available via an open testing track in the Google Play Store. You can join and install the app via [this link](https://play.google.com/store/apps/details?id=org.thecommonsproject.android.phr.developer) on your Android device or [this link](https://play.google.com/apps/testing/org.thecommonsproject.android.phr.developer) on the web.
+
+### Running the CommonHealth Developer Edition
+
+Once CommonHealth Developer Edition is installed, you will need to add a sample patient account in order to populate the app with sample data. After selecting the SMART IT Sandbox from the list of avaialble data sources, you will redirected to the SMART IT Sandbox and be presented with an authentication screen. Enter the sample patient's `ID` (e.g., `099e7de7-c952-40e2-9b4e-0face78c9d80`, `smart-1288992`) in the `User Id` field. The `Password` field is not checked and can be anything. A full list of sample patients can be found [here](https://patient-browser.smarthealthit.org/index.html?config=r2).
 
 ## Configuration Requirements
 
@@ -16,13 +28,13 @@ This quick start guide is geared towards participants in our closed beta program
 The CommonHealth Client SDK consists of two modules: commonhealthclient and common. Commonhealthclient contains the bulk of functionality for the SDK, while common types shared between the CommonHealth application and the CommonHealth Client SDK. You'll need to add the following to your application's list of dependencies:
 
 ```
-implementation "org.thecommonsproject.commonhealth:common:0.4.8"
-implementation "org.thecommonsproject.commonhealth:commonhealthclient:0.4.8"
+implementation "org.thecommonsproject:commonhealth-common:1.1.2"
+implementation "org.thecommonsproject:commonhealth-client:1.1.2"
 ```
 
-The artifacts currently reside in our organization's bintray repo, but at some point these will be migrated to jcenter. In the mean time, you'll need to add the following maven repository to your list of repositories, typically defined in the project's `gradle.build` file:
+The release artifacts are made avalable via the Maven Central repository, so you will need to have the following in your list of dependency repositories:
 
-`maven { url "https://dl.bintray.com/thecommonsproject/CommonHealth" }`
+`mavenCentral()`
 
 Additionally, some dependency artifacts are served by Jitpack, so you will also need to add the following maven repository:
 
@@ -121,10 +133,12 @@ To help with security, the `common` module provides `SecureNamespacedKeyValueSto
 The `SampleApplication` class contains the following code to create a `SecureNamespacedKeyValueStore`:
 
 ```
-val database = database ?: createDataBase(context)
+val cryptoProvider = DefaultCryptoProvider(DefaultAndroidKeystoreClientWrapper())
+val database = database ?: createDataBase(context, cryptoProvider)
 val namespacedKeyValueStore = SecureNamespacedKeyValueStore(
     KeyValueLocalDataStore(database.keyValueEntryDao()),
-    "secure_namespaced_key_value_store"
+    "secure_namespaced_key_value_store",
+    cryptoProvider
 )
 ```
 
@@ -327,7 +341,17 @@ Upon receiving the NEW_DATA_AVAILABLE notification, you can invoke a method on t
 
 ## Registering with CommonHealth
 
-Registering with CommonHealth is not required to begin testing integrations with CommonHealth. However, if you have a client application that you would like to use in production environments, you'll need to register the application with CommonHealth. This is similar to registering an OAuth client, where you would specify information such as required scope, authorization redirect URI, etc. Please reach out to developers [at] commonhealth.org for more information.
+Registering with CommonHealth is not required to begin testing integrations with CommonHealth Developer Edition. However, if you have a client application that you would like to use in staging or production environments, you'll need to register the application with CommonHealth. This is similar to registering an OAuth client, where you would specify information such as required scope, authorization redirect URI, etc. Please reach out to developers [at] commonhealth.org for more information.
+
+## Upgrading from v0.4.8 to v1.1.2
+`v1.1.2` introduced a small number of changes:
+
+ - The constructor for `SecureNamespacedKeyValueStore` now requires a `CryptoProvider` object.
+ - The artifacts names have changed:
+    - `org.thecommonsproject.commonhealth:common` is now `org.thecommonsproject:commonhealth-common`
+    - `org.thecommonsproject.commonhealth:commonhealthclient` is now `org.thecommonsproject:commonhealth-client`
+ - The artifacts are now hosted in Maven Central.
+
 
 ## Upgrading from v0.4.4 to v0.4.8
 `v0.4.8` introduced a number of large changes and enhancements to the API:

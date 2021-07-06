@@ -6,7 +6,10 @@ import androidx.room.Room
 import net.sqlcipher.database.SupportFactory
 import org.thecommonsproject.android.common.keyvaluestore.SecureNamespacedKeyValueStore
 import org.thecommonsproject.android.common.keyvaluestore.room.KeyValueLocalDataStore
+import org.thecommonsproject.android.common.util.CryptoProvider
 import org.thecommonsproject.android.common.util.DatabasePassphraseManager
+import org.thecommonsproject.android.common.util.DefaultAndroidKeystoreClientWrapper
+import org.thecommonsproject.android.common.util.DefaultCryptoProvider
 import org.thecommonsproject.android.commonhealthclient.*
 import org.thecommonsproject.android.commonhealthclient.notification.CommonHealthNotification
 import timber.log.Timber
@@ -15,19 +18,20 @@ class SampleApplication: Application() {
 
     private var database: SampleApplicationDatabase? = null
 
-    private fun getDatabasePassphrase(context: Context) : ByteArray {
+    private fun getDatabasePassphrase(context: Context, cryptoProvider: CryptoProvider) : ByteArray {
         val passphraseFilePath = context.filesDir.absolutePath.plus("/encryptedDatabasePassphrase")
         val passphraseManager = DatabasePassphraseManager(
             passphraseFilePath,
             64,
-            "passphrase_file"
+            "passphrase_file",
+            cryptoProvider
         )
 
         return passphraseManager.getPassphrase()
     }
 
-    private fun createDataBase(context: Context): SampleApplicationDatabase {
-        val passphrase = getDatabasePassphrase(context)
+    private fun createDataBase(context: Context, cryptoProvider: CryptoProvider): SampleApplicationDatabase {
+        val passphrase = getDatabasePassphrase(context, cryptoProvider)
         val supportFactory = SupportFactory(passphrase)
         val result = Room.databaseBuilder(
             context.applicationContext,
@@ -42,6 +46,7 @@ class SampleApplication: Application() {
 
     private fun initializeCommonHealthStore(application: Application) {
 
+        val cryptoProvider = DefaultCryptoProvider(DefaultAndroidKeystoreClientWrapper())
         val context = application.applicationContext
         val notificationPreferences = NotificationPreferences(
             subscribedNotificationTypes = setOf(
@@ -78,10 +83,11 @@ class SampleApplication: Application() {
             notificationPreferences = notificationPreferences
         )
 
-        val database = database ?: createDataBase(context)
+        val database = database ?: createDataBase(context, cryptoProvider)
         val namespacedKeyValueStore = SecureNamespacedKeyValueStore(
             KeyValueLocalDataStore(database.keyValueEntryDao()),
-            "secure_namespaced_key_value_store"
+            "secure_namespaced_key_value_store",
+            cryptoProvider
         )
 
         //if initialization fails, halt
