@@ -27,7 +27,7 @@ allprojects {
         maven { url "https://jcenter.bintray.com" }
         maven { url 'https://jitpack.io' }
         // CH Snapshot repo
-        // maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots' }
+//         maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots' }
     }
 }
 
@@ -43,7 +43,7 @@ ext {
     targetSdkVersion = 29
     compileSdkVersion = 29
 
-    commonHealthVersion = '1.1.1-alpha02'
+    commonHealthVersion = '1.1.2'
 
     appCompatVersion = '1.1.0'
     androidXVersion = '1.1.0'

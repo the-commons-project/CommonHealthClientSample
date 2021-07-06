@@ -58,16 +58,16 @@ dependencies {
     implementation "androidx.navigation:navigation-fragment-ktx:$navigationVersion"
     implementation "androidx.navigation:navigation-ui-ktx:$navigationVersion"
 
-//    implementation "org.thecommonsproject:commonhealth-common:$commonHealthVersion"
-//    implementation "org.thecommonsproject:commonhealth-client:$commonHealthVersion"
-    implementation(group: "org.thecommonsproject", name: "commonhealth-common", version: commonHealthVersion, changing: true)
-    implementation(group: "org.thecommonsproject", name: "commonhealth-client", version: commonHealthVersion, changing: true)
+    implementation "org.thecommonsproject:commonhealth-common:$commonHealthVersion"
+    implementation "org.thecommonsproject:commonhealth-client:$commonHealthVersion"
+    // FOR SNAPSHOT VERSIONS
+//    implementation(group: "org.thecommonsproject", name: "commonhealth-common", version: commonHealthVersion, changing: true)
+//    implementation(group: "org.thecommonsproject", name: "commonhealth-client", version: commonHealthVersion, changing: true)
 
     //Room
     kapt "androidx.room:room-compiler:$roomVersion"
     implementation "androidx.room:room-runtime:$roomVersion"
     implementation "androidx.room:room-ktx:$roomVersion"
-//    implementation "androidx.room:room-rxjava2:$roomVersion"
 
     //for pretty printing json resources
     implementation "com.google.code.gson:gson:$gsonVersion"
