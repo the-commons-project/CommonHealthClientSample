@@ -4,6 +4,8 @@ The CommonHealth Client SDK provides an interface that allows applications to ac
 
 The CommonHealth Client SDK is in open beta. 
 
+If you're interested in developing a production integration with the CommonHealth Client SDK, please reach out to developers [at] commonhealth.org to begin the process of being whitelisted. 
+
 While we consider the SDK to be relatively stable, this is pre-release software, so the interfaces are subject to change based on evolving requirements and developer feedback. We're currently investigating ways to make it easier to remove configuration dependencies, so if you find anything particularly burdensome or confusing, please let us know by either emailing us or opening a Github issue.
 
 ## Audience 
@@ -25,11 +27,11 @@ Once CommonHealth Developer Edition is installed, you will need to add a sample 
 
 ### Gradle Dependencies
 
-The CommonHealth Client SDK consists of two modules: commonhealthclient and common. Commonhealthclient contains the bulk of functionality for the SDK, while common types shared between the CommonHealth application and the CommonHealth Client SDK. You'll need to add the following to your application's list of dependencies:
+The CommonHealth Client SDK consists of two modules: commonhealth-client and commonhealth-common. CommonHealthClient contains the bulk of functionality for the SDK, while common contains types shared between the CommonHealth application and the CommonHealth Client SDK. You'll need to add the following to your application's list of dependencies:
 
 ```
-implementation "org.thecommonsproject:commonhealth-common:1.1.2"
-implementation "org.thecommonsproject:commonhealth-client:1.1.2"
+implementation "org.thecommonsproject:commonhealth-common:1.3.15"
+implementation "org.thecommonsproject:commonhealth-client:1.3.15"
 ```
 
 The release artifacts are made avalable via the Maven Central repository, so you will need to have the following in your list of dependency repositories:
@@ -339,9 +341,45 @@ Upon receiving the NEW_DATA_AVAILABLE notification, you can invoke a method on t
 
  Using these can help you identify when and if you need to pull data from CommonHealth, or if data has been deleted in CommonHealth and should be removed from your local datastore, if persisted.
 
+### Reading Verifiable Credentials (SMART® Health Cards) -- new in v1.3.15 and currently in beta 
+
+_Note: This feature is currently in beta and should not yet be used in production applications. We'd love your feedback as you start using it; please open a Github issue, or email developers [at] commonhealth.org with any thoughts that you have. Thank you!_
+
+Client applications can now request to read Verifiable Credentials (SMART® Health Cards) from CommonHealth. This is a completely separate, independent flow from requesting other types of health data. 
+
+Client applications simply request access based on a set of Verifiable Credential types, and if the user consents to sharing any SMART® Health Cards that match the requested types, then the data will be returned immediately to the calling application. There is no persistent connection established, and the client application will have to request again (and the user consent again) to access the same data. 
+
+Invoking the `readVerifiableCredentials` will redirect to CommonHealth, initiating a consent flow where the user can select which SHCs (or none) to share.
+
+Here's a snippet demonstrating how the new `readVerifiableCredentials` method can be called to retrieve COVID-19 Vaccination SMART® Health Cards:
+
+ ```
+// Determine which VC types you'd like to read
+// In this case, we're requesting COVID-19 Vaccination records.  
+val c19VaxVcTypes = setOf(
+    "https://smarthealth.cards#immunization",
+    "https://smarthealth.cards#covid19",
+    "https://smarthealth.cards#health-card"
+)
+
+// Pass the VC Types into the readVerifiableCredentials suspending method        
+val smartHealthCards = commonHealthStore.readVerifiableCredentials(
+    context,
+    c19VaxVcTypes
+)
+ ```
+
+CommonHealth performs SMART® Health Card validation prior to ingesting the cards into the app, including signature validation and checks against the payload contents. However, it is recommended to perform your own validation depending on your use case. The raw JWT can be accessed through the `json` property on each `VerifiableRecordSampleDataQueryResult` object.
+
 ## Registering with CommonHealth
 
 Registering with CommonHealth is not required to begin testing integrations with CommonHealth Developer Edition. However, if you have a client application that you would like to use in staging or production environments, you'll need to register the application with CommonHealth. This is similar to registering an OAuth client, where you would specify information such as required scope, authorization redirect URI, etc. Please reach out to developers [at] commonhealth.org for more information.
+
+## Upgrading from v1.1.2 to v1.3.15
+`v1.3.15` introduced a small number of changes:
+
+- Support for requesting access to Verifiable Credentials (SMART® Health Cards) is now in beta
+- Updates to support higher Android OS levels (specifically changes to accommodate new restrictions on apps calling into packageManager)
 
 ## Upgrading from v0.4.8 to v1.1.2
 `v1.1.2` introduced a small number of changes:
@@ -351,7 +389,6 @@ Registering with CommonHealth is not required to begin testing integrations with
     - `org.thecommonsproject.commonhealth:common` is now `org.thecommonsproject:commonhealth-common`
     - `org.thecommonsproject.commonhealth:commonhealthclient` is now `org.thecommonsproject:commonhealth-client`
  - The artifacts are now hosted in Maven Central.
-
 
 ## Upgrading from v0.4.4 to v0.4.8
 `v0.4.8` introduced a number of large changes and enhancements to the API:

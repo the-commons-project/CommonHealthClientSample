@@ -2,8 +2,6 @@ package org.thecommonsproject.android.commonhealth.sampleapp
 
 import android.content.Context
 import android.content.Intent
-import android.util.Log
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,6 +14,7 @@ import org.thecommonsproject.android.common.interapp.CommonHealthAuthorizationSt
 import org.thecommonsproject.android.common.interapp.dataquery.response.DataQueryResult
 import org.thecommonsproject.android.common.interapp.dataquery.response.FHIRSampleDataQueryResult
 import org.thecommonsproject.android.common.interapp.dataquery.response.RecordUpdateQueryResult
+import org.thecommonsproject.android.common.interapp.dataquery.response.VerifiableRecordSampleDataQueryResult
 import org.thecommonsproject.android.common.interapp.scope.DataType
 import org.thecommonsproject.android.common.interapp.scope.Scope
 import org.thecommonsproject.android.common.interapp.scope.ScopeRequest
@@ -24,14 +23,22 @@ import org.thecommonsproject.android.commonhealthclient.AuthorizationRequest
 import org.thecommonsproject.android.commonhealthclient.CommonHealthAvailability
 import org.thecommonsproject.android.commonhealthclient.CommonHealthStore
 import timber.log.Timber
-import java.util.*
 
 class MainViewModel(
     private val commonHealthStore: CommonHealthStore
 ) : ViewModel() {
 
+    companion object {
+        private val c19VaxVcTypes = setOf(
+            "https://smarthealth.cards#immunization",
+            "https://smarthealth.cards#covid19",
+            "https://smarthealth.cards#health-card"
+        )
+    }
+
     private val connectionAlias = "connection_alias"
-    private val TAG by lazy { MainViewModel::class.java.simpleName }
+
+    var storedVCResults = emptyList<VerifiableRecordSampleDataQueryResult>()
 
     val allDataTypes: List<DataType.ClinicalResource> = listOf(
         DataType.ClinicalResource.AllergyIntoleranceResource,
@@ -170,6 +177,15 @@ class MainViewModel(
 
     suspend fun getCommonHealthAvailability(context: Context): CommonHealthAvailability {
         return commonHealthStore.getCommonHealthAvailability(context)
+    }
+
+    suspend fun fetchC19VaxStatus(context: Context): List<VerifiableRecordSampleDataQueryResult> {
+        val results = commonHealthStore.readVerifiableCredentials(
+            context,
+            c19VaxVcTypes
+        )
+        storedVCResults = results
+        return results
     }
 
     fun prettyPrintJSON(jsonString: String): String {
