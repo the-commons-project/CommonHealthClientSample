@@ -17,6 +17,9 @@ import timber.log.Timber
 class SampleApplication: Application() {
 
     private var database: SampleApplicationDatabase? = null
+    private val cryptoProvider: CryptoProvider by lazy {
+        DefaultCryptoProvider(DefaultAndroidKeystoreClientWrapper())
+    }
 
     private fun getDatabasePassphrase(context: Context, cryptoProvider: CryptoProvider) : ByteArray {
         val passphraseFilePath = context.filesDir.absolutePath.plus("/encryptedDatabasePassphrase")
@@ -46,7 +49,6 @@ class SampleApplication: Application() {
 
     private fun initializeCommonHealthStore(application: Application) {
 
-        val cryptoProvider = DefaultCryptoProvider(DefaultAndroidKeystoreClientWrapper())
         val context = application.applicationContext
         val notificationPreferences = NotificationPreferences(
             subscribedNotificationTypes = setOf(

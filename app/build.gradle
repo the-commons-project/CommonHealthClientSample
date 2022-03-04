@@ -20,6 +20,7 @@ android {
         manifestPlaceholders.interappAuthRedirectScheme = "org.thecommonsproject.android.commonhealth.sampleapp"
         manifestPlaceholders.interappAuthRedirectHost = "interapp"
         manifestPlaceholders.interappAuthRedirectPath = "/redirect"
+        manifestPlaceholders.commonHealthAppId = "org.thecommonsproject.android.phr.developer"
     }
     buildTypes {
         release {
@@ -34,7 +35,7 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "11"
     }
 }
 

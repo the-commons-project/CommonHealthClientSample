@@ -13,6 +13,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.navOptions
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.thecommonsproject.android.common.interapp.CommonHealthAuthorizationStatus
 import org.thecommonsproject.android.common.interapp.dataquery.response.RecordUpdateQueryResult
@@ -30,6 +31,7 @@ class CategoryListFragment : Fragment() {
 
     private val viewModel by activityViewModels<MainViewModel> { getVmFactory() }
     private lateinit var authorizeButton: Button
+    private lateinit var requestShcsButton: Button
     private lateinit var spinner: ProgressBar
 
     override fun onCreateView(
@@ -83,6 +85,12 @@ class CategoryListFragment : Fragment() {
             startActivity(authIntent)
         }
 
+        requestShcsButton = view.findViewById(R.id.request_shcs)
+        requestShcsButton.isEnabled = false
+        requestShcsButton.setOnClickListener {
+            requestC19VaxStatus()
+        }
+
         spinner = view.findViewById(R.id.progress_bar)
 
         viewModel.resultsLiveData.observe(viewLifecycleOwner) { resultsMap ->
@@ -100,10 +108,38 @@ class CategoryListFragment : Fragment() {
         updateUI()
     }
 
+    private fun requestC19VaxStatus() {
+        val context = context ?: return
+        viewModel.viewModelScope.launch {
+            spinner.visibility = View.VISIBLE
+            val results = viewModel.fetchC19VaxStatus(context)
+            spinner.visibility = View.GONE
+            if (results.isEmpty()) {
+                Toast.makeText(requireContext(), "Fetched 0 Verifiable Credentials", Toast.LENGTH_LONG).show()
+                return@launch
+            }
+
+            delay(500)
+
+            val directions = CategoryListFragmentDirections.actionCategoryListFragmentToVcResultsListFragment()
+            val options = navOptions {
+                anim {
+                    enter = R.anim.slide_in_right
+                    exit = R.anim.slide_out_left
+                    popEnter = R.anim.slide_in_left
+                    popExit = R.anim.slide_out_right
+                }
+            }
+            findNavController().navigate(directions, options)
+        }
+    }
+
     private fun updateUI() {
         viewModel.viewModelScope.launch {
             when(viewModel.getCommonHealthAvailability(requireContext())) {
-                CommonHealthAvailability.AVAILABLE -> { }
+                CommonHealthAvailability.AVAILABLE -> {
+                    requestShcsButton.isEnabled = true
+                }
                 CommonHealthAvailability.NOT_INSTALLED,
                 CommonHealthAvailability.ACCOUNT_NOT_CONFIGURED_FOR_SHARING -> {
                     Toast.makeText(
@@ -112,6 +148,7 @@ class CategoryListFragment : Fragment() {
                         Toast.LENGTH_LONG
                     ).show()
                     authorizeButton.isEnabled = false
+                    requestShcsButton.isEnabled = false
                     return@launch
                 }
             }

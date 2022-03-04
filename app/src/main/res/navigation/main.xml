@@ -13,6 +13,9 @@
         <action
                 android:id="@+id/action_categoryListFragment_to_resourceListFragment"
                 app:destination="@id/resourceListFragment" />
+        <action
+            android:id="@+id/action_categoryListFragment_to_vcResultsListFragment"
+            app:destination="@id/vcResultsListFragment" />
     </fragment>
     <fragment
             android:id="@+id/resourceListFragment"
@@ -38,5 +41,11 @@
             tools:layout="@layout/fhir_data_fragment">
         <argument android:name="resourceJson"
                 app:argType="string"/>
+    </fragment>
+
+    <fragment
+        android:id="@+id/vcResultsListFragment"
+        android:name="org.thecommonsproject.android.commonhealth.sampleapp.fragments.VCResultListFragment">
+
     </fragment>
 </navigation>
