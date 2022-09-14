@@ -296,13 +296,12 @@ In order to fetch data, the SDK provides the `readSampleQuery` method on the `Co
 
 ```
 suspend fun readSampleQuery(
-    context: Context,
-    connectionAlias: String,
-    dataTypes: Set<DataType>,
-    before: Date? = null,
-    after: Date? = null,
-    fetchedAfter: Date? = null
-): List<DataQueryResult>
+  context: Context,
+  connectionAlias: String,
+  dataTypes: Set<DataType.FHIRResource>,
+  beforeAfterDatePair: Pair<Date?, Date?>,
+  fetchedAfter: Date? = null
+): List<SampleDataQueryResult>
 ```
 
 As you can see, the method returns a list of `SampleDataQueryResult` instances. For requests for FHIR data, these can be cast to `FHIRSampleDataQueryResult` instances. Each `FHIRSampleDataQueryResult` instance contains the following:
@@ -390,9 +389,10 @@ CommonHealth performs SMART® Health Card validation prior to ingesting the card
 Registering with CommonHealth is not required to begin testing integrations with CommonHealth Developer Edition. However, if you have a client application that you would like to use in staging or production environments, you'll need to register the application with CommonHealth. This is similar to registering an OAuth client, where you would specify information such as required scope, authorization redirect URI, etc. Please reach out to developers [at] commonhealth.org for more information.
 
 ## Upgrading from v1.3.15 to v1.6.2
-`v1.6.12` introduced a small number of changes:
+`v1.6.12` introduced insurance data:
 
-- Support for Insurance data through the CMS Blue Button 2.0 Sandbox. This will require you to register with CMS an app with a redirect url to CommonHealth, and then for you to provide the client id/secret locally into CommonHealth so that you can download the data
+- Support for Insurance data through the CMS Blue Button 2.0 Sandbox. This will require you to register with CMS an app with a redirect url to CommonHealth, and then for you to provide the client id/secret locally into CommonHealth so that you can download the data. Please see section "Using CMS Blue Button Sandbox" above.
+- Minor change to readSampleQuery(..) parameters
 
 ## Upgrading from v1.1.2 to v1.3.15
 `v1.3.15` introduced a small number of changes:
