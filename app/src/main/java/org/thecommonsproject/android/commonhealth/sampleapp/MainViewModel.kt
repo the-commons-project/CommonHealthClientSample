@@ -40,14 +40,16 @@ class MainViewModel(
 
     var storedVCResults = emptyList<VerifiableRecordSampleDataQueryResult>()
 
-    val allDataTypes: List<DataType.ClinicalResource> = listOf(
+    val allDataTypes: List<DataType.FHIRResource> = listOf(
         DataType.ClinicalResource.AllergyIntoleranceResource,
         DataType.ClinicalResource.ClinicalVitalsResource,
         DataType.ClinicalResource.ConditionsResource,
         DataType.ClinicalResource.ImmunizationsResource,
         DataType.ClinicalResource.LaboratoryResultsResource,
         DataType.ClinicalResource.MedicationResource,
-        DataType.ClinicalResource.ProceduresResource
+        DataType.ClinicalResource.ProceduresResource,
+        DataType.PayerResource.ExplanationOfBenefitResource,
+        DataType.PayerResource.CoverageResource,
     )
 
 
@@ -60,12 +62,12 @@ class MainViewModel(
     }
 
     sealed class ResultHolderMessage {
-        class SetResults(val resourceType: DataType.ClinicalResource, val results: List<FHIRSampleDataQueryResult>) : ResultHolderMessage()
+        class SetResults(val resourceType: DataType.FHIRResource, val results: List<FHIRSampleDataQueryResult>) : ResultHolderMessage()
         class SetRecordUpdateResults(val results: List<RecordUpdateQueryResult>) : ResultHolderMessage()
     }
 
-    private var resultsMap: Map<DataType.ClinicalResource, List<FHIRSampleDataQueryResult>> = emptyMap()
-    var resultsLiveData: MutableLiveData<Map<DataType.ClinicalResource, List<FHIRSampleDataQueryResult>>> = MutableLiveData(resultsMap)
+    private var resultsMap: Map<DataType.FHIRResource, List<FHIRSampleDataQueryResult>> = emptyMap()
+    var resultsLiveData: MutableLiveData<Map<DataType.FHIRResource, List<FHIRSampleDataQueryResult>>> = MutableLiveData(resultsMap)
     val recordUpdatesLiveData = MutableLiveData<List<RecordUpdateQueryResult>>()
 
     // This function launches a new counter actor
@@ -126,12 +128,13 @@ class MainViewModel(
         )
     }
 
-    private suspend fun fetchData(context: Context, clinicalResource: DataType.ClinicalResource) : List<DataQueryResult>{
+    private suspend fun fetchData(context: Context, dataType: DataType.FHIRResource) : List<DataQueryResult>{
         return try {
             commonHealthStore.readSampleQuery(
                 context,
                 connectionAlias,
-                setOf(clinicalResource)
+                setOf(dataType),
+                Pair(null, null)
             )
         } catch (e: Throwable) {
             Timber.e( e, "Exception fetching data")
@@ -153,12 +156,12 @@ class MainViewModel(
 
     suspend fun fetchAllData(context: Context) {
         val typesToFetch = allDataTypes
-        val sampleQueryFetchJobs = typesToFetch.map { clinicalResource ->
+        val sampleQueryFetchJobs = typesToFetch.map { dataType ->
             CoroutineScope(Dispatchers.IO).launch {
-                val results = fetchData(context, clinicalResource).mapNotNull { it as? FHIRSampleDataQueryResult }
+                val results = fetchData(context, dataType).mapNotNull { it as? FHIRSampleDataQueryResult }
                 resultsHolderActor!!.send(
                     ResultHolderMessage.SetResults(
-                        clinicalResource,
+                        dataType,
                         results
                     )
                 )

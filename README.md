@@ -30,8 +30,8 @@ Once CommonHealth Developer Edition is installed, you will need to add a sample 
 The CommonHealth Client SDK consists of two modules: commonhealth-client and commonhealth-common. CommonHealthClient contains the bulk of functionality for the SDK, while common contains types shared between the CommonHealth application and the CommonHealth Client SDK. You'll need to add the following to your application's list of dependencies:
 
 ```
-implementation "org.thecommonsproject:commonhealth-common:1.3.15"
-implementation "org.thecommonsproject:commonhealth-client:1.3.15"
+implementation "org.thecommonsproject:commonhealth-common:1.6.2"
+implementation "org.thecommonsproject:commonhealth-client:1.6.2"
 ```
 
 The release artifacts are made avalable via the Maven Central repository, so you will need to have the following in your list of dependency repositories:
@@ -187,17 +187,19 @@ Client applications should follow the principle of least privilege and only requ
 
 Client applications must define a `ScopeRequest`, which encapsulates a set of `Scope` objects. Each `Scope` object **must** contain a data type (`DataType`) an access type (`Scope.Access`). If you would like to limit the scope of access to a defined set of codes, you may also provide a list of `ScopedCodeAllowListEntry` objects. `ScopeRequest` contains a `Builder` class to help with implementation.
 
-The following sample creates a `ScopeRequest` object requesting read access to all currently available clinical data types:
+The following sample creates a `ScopeRequest` object requesting read access to all currently available FHIR data types:
 
 ```
-val allDataTypes: List<DataType.ClinicalResource> = listOf(
-    DataType.ClinicalResource.AllergyIntoleranceResource,
-    DataType.ClinicalResource.ClinicalVitalsResource,
-    DataType.ClinicalResource.ConditionsResource,
-    DataType.ClinicalResource.ImmunizationsResource,
-    DataType.ClinicalResource.LaboratoryResultsResource,
-    DataType.ClinicalResource.MedicationResource,
-    DataType.ClinicalResource.ProceduresResource
+val allDataTypes: List<DataType.FHIRResource> = listOf(
+   DataType.ClinicalResource.AllergyIntoleranceResource,
+   DataType.ClinicalResource.ClinicalVitalsResource,
+   DataType.ClinicalResource.ConditionsResource,
+   DataType.ClinicalResource.ImmunizationsResource,
+   DataType.ClinicalResource.LaboratoryResultsResource,
+   DataType.ClinicalResource.MedicationResource,
+   DataType.ClinicalResource.ProceduresResource,
+   DataType.PayerResource.ExplanationOfBenefitResource,
+   DataType.PayerResource.CoverageResource,
 )
 
 val scopeRequest: ScopeRequest by lazy {
@@ -303,7 +305,7 @@ suspend fun readSampleQuery(
 ): List<DataQueryResult>
 ```
 
-As you can see, the method returns a list of `SampleDataQueryResult` instances. For requests for clinical data, these can be cast to `FHIRSampleDataQueryResult` instances. Each `FHIRSampleDataQueryResult` instance contains the following:
+As you can see, the method returns a list of `SampleDataQueryResult` instances. For requests for FHIR data, these can be cast to `FHIRSampleDataQueryResult` instances. Each `FHIRSampleDataQueryResult` instance contains the following:
 
  - resourceType: DataType.FHIRResource - the type of the resource
  - json: String - JSON string representation of the FHIR resource
@@ -341,6 +343,18 @@ Upon receiving the NEW_DATA_AVAILABLE notification, you can invoke a method on t
 
  Using these can help you identify when and if you need to pull data from CommonHealth, or if data has been deleted in CommonHealth and should be removed from your local datastore, if persisted.
 
+### Using CMS Blue Button Sandbox -- new in v1.6.2 and currently in beta
+
+_Note: This feature is currently in beta and should not yet be used in production applications. We'd love your feedback as you start using it; please open a Github issue, or email developers [at] commonhealth.org with any thoughts that you have. Thank you!_
+
+Client applications can now request to read Insurance data from CommonHealth. This data flows similarly to the existing clinical data types.
+
+Important note: CMS requires a client id and secret. [Register with CMS](https://sandbox.bluebutton.cms.gov/v1/accounts/create) to get a client id and secret.
+
+Be sure to register your sandbox app with our redirect url: org.thecommonsproject.android.phr.developer://oauth/redirect
+
+We can\'t use our own so you\'ll have to provide one. We will save this id and secret only locally, for your development convenience. We never send this client id/secret anywhere except to the authorization server for OAuth.
+
 ### Reading Verifiable Credentials (SMART® Health Cards) -- new in v1.3.15 and currently in beta 
 
 _Note: This feature is currently in beta and should not yet be used in production applications. We'd love your feedback as you start using it; please open a Github issue, or email developers [at] commonhealth.org with any thoughts that you have. Thank you!_
@@ -374,6 +388,11 @@ CommonHealth performs SMART® Health Card validation prior to ingesting the card
 ## Registering with CommonHealth
 
 Registering with CommonHealth is not required to begin testing integrations with CommonHealth Developer Edition. However, if you have a client application that you would like to use in staging or production environments, you'll need to register the application with CommonHealth. This is similar to registering an OAuth client, where you would specify information such as required scope, authorization redirect URI, etc. Please reach out to developers [at] commonhealth.org for more information.
+
+## Upgrading from v1.3.15 to v1.6.2
+`v1.6.12` introduced a small number of changes:
+
+- Support for Insurance data through the CMS Blue Button 2.0 Sandbox. This will require you to register with CMS an app with a redirect url to CommonHealth, and then for you to provide the client id/secret locally into CommonHealth so that you can download the data
 
 ## Upgrading from v1.1.2 to v1.3.15
 `v1.3.15` introduced a small number of changes:

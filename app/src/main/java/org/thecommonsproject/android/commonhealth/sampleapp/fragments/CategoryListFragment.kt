@@ -137,11 +137,11 @@ class CategoryListFragment : Fragment() {
     private fun updateUI() {
         viewModel.viewModelScope.launch {
             when(viewModel.getCommonHealthAvailability(requireContext())) {
-                CommonHealthAvailability.AVAILABLE -> {
+                CommonHealthAvailability.Available -> {
                     requestShcsButton.isEnabled = true
                 }
-                CommonHealthAvailability.NOT_INSTALLED,
-                CommonHealthAvailability.ACCOUNT_NOT_CONFIGURED_FOR_SHARING -> {
+                CommonHealthAvailability.NotInstalled,
+                CommonHealthAvailability.NotConfiguredForSharing -> {
                     Toast.makeText(
                         requireContext(),
                         "Please make sure CommonHealth is installed and setup",
@@ -202,12 +202,12 @@ class CategoryListFragment : Fragment() {
     }
 
     class ContentAdapter(
-        private val categories: List<DataType.ClinicalResource>,
+        private val categories: List<DataType>,
         private val generateOnClickListener: (DataType) -> View.OnClickListener
     ) : RecyclerView.Adapter<CategoryListItemViewHolder>() {
 
-        private var resultsCounts: Map<DataType.ClinicalResource, Int>? = null
-        fun updateResultsCounts(newResultsCounts: Map<DataType.ClinicalResource, Int>) {
+        private var resultsCounts: Map<DataType.FHIRResource, Int>? = null
+        fun updateResultsCounts(newResultsCounts: Map<DataType.FHIRResource, Int>) {
             resultsCounts = newResultsCounts
             notifyDataSetChanged()
         }
