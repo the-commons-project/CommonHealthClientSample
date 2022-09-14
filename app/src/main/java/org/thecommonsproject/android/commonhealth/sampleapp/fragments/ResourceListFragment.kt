@@ -40,7 +40,7 @@ class ResourceListFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val safeArgs: ResourceListFragmentArgs by navArgs()
-        val dataType = (safeArgs.dataType as? DataType.ClinicalResource) ?: run {
+        val dataType = (safeArgs.dataType as? DataType.FHIRResource) ?: run {
             throw Exception("Unsupported data type")
         }
 
