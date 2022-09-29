@@ -21,7 +21,9 @@ CommonHealth Developer Edition is currently made available via an open testing t
 
 ### Running the CommonHealth Developer Edition
 
-Once CommonHealth Developer Edition is installed, you will need to add a sample patient account in order to populate the app with sample data. After selecting the SMART IT Sandbox from the list of avaialble data sources, you will redirected to the SMART IT Sandbox and be presented with an authentication screen. Enter the sample patient's `ID` (e.g., `099e7de7-c952-40e2-9b4e-0face78c9d80`, `smart-1288992`) in the `User Id` field. The `Password` field is not checked and can be anything. A full list of sample patients can be found [here](https://patient-browser.smarthealthit.org/index.html?config=r2).
+Once CommonHealth Developer Edition is installed, you will need to add a sample patient account in order to populate the app with sample clinical data. After selecting the SMART IT Sandbox from the list of available data sources, you will redirected to the SMART IT Sandbox and be presented with an authentication screen. Enter the sample patient's `ID` (e.g., `983561b3-02dd-4227-88a7-835827bd9566`, `0c2a34a4-d948-4917-98b8-f44a77e459d8`) in the `User Id` field. The `Password` field is not checked and can be anything (i.e. `123`). A full list of sample patients can be found [here](https://patient-browser.smarthealthit.org/?config=r4).
+
+For insurance data, use the CMS Blue Button Sandbox. You will have to provider your client id/secret registered with a redirect into CommonHealth Developer Edition for this to work. See the section ### Using CMS Blue Button Sandbox below
 
 ## Configuration Requirements
 
@@ -30,8 +32,8 @@ Once CommonHealth Developer Edition is installed, you will need to add a sample 
 The CommonHealth Client SDK consists of two modules: commonhealth-client and commonhealth-common. CommonHealthClient contains the bulk of functionality for the SDK, while common contains types shared between the CommonHealth application and the CommonHealth Client SDK. You'll need to add the following to your application's list of dependencies:
 
 ```
-implementation "org.thecommonsproject:commonhealth-common:1.6.2"
-implementation "org.thecommonsproject:commonhealth-client:1.6.2"
+implementation "org.thecommonsproject:commonhealth-common:1.6.4"
+implementation "org.thecommonsproject:commonhealth-client:1.6.4"
 ```
 
 The release artifacts are made avalable via the Maven Central repository, so you will need to have the following in your list of dependency repositories:
@@ -388,8 +390,14 @@ CommonHealth performs SMART® Health Card validation prior to ingesting the card
 
 Registering with CommonHealth is not required to begin testing integrations with CommonHealth Developer Edition. However, if you have a client application that you would like to use in staging or production environments, you'll need to register the application with CommonHealth. This is similar to registering an OAuth client, where you would specify information such as required scope, authorization redirect URI, etc. Please reach out to developers [at] commonhealth.org for more information.
 
+## Upgrading from v1.6.2 to v1.6.4
+`v1.6.4` updated our SMART IT Sandbox version:
+
+- Upgraded to SMART IT Sandbox R4 from DSTU2
+- Make sure to use the R4 Patient Browser (listed above) rather than the previously linked DSTU2 browser for finding valid patients
+
 ## Upgrading from v1.3.15 to v1.6.2
-`v1.6.12` introduced insurance data:
+`v1.6.2` introduced insurance data:
 
 - Support for Insurance data through the CMS Blue Button 2.0 Sandbox. This will require you to register with CMS an app with a redirect url to CommonHealth, and then for you to provide the client id/secret locally into CommonHealth so that you can download the data. Please see section "Using CMS Blue Button Sandbox" above.
 - Minor change to readSampleQuery(..) parameters
