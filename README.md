@@ -36,61 +36,33 @@ implementation "org.thecommonsproject:commonhealth-common:1.6.4"
 implementation "org.thecommonsproject:commonhealth-client:1.6.4"
 ```
 
-The release artifacts are made avalable via the Maven Central repository, so you will need to have the following in your list of dependency repositories:
+The release artifacts are made avalable via the Maven Central repository and some dependencies are in Jitpack, so you will need to have the following in your list of dependency repositories (probably settings.gradle):
 
 `mavenCentral()`
-
-Additionally, some dependency artifacts are served by Jitpack, so you will also need to add the following maven repository:
 
 `maven { url "https://jitpack.io" }`
 
 ### Manifest Placeholders
 
-The interapplication data sharing functionality of CommonHealth leverages native Android communication components. The CommonHealth Client SDK defines the following activities, services, and receivers in its `manifest.xml` file, which will be merged into the application's manifest during the build process:
+Our authorization process is inspired by OAuth and requires that the `RedirectUriReceiverActivity` receive a redirect from CommonHealth. Applications must define the `interappAuthRedirectScheme`, `interappAuthRedirectHost`, and `interappAuthRedirectPath` manifest placeholders in the app's `build.gradle` file, and the compiled URL must match the `authorizationCallbackUri` in the `CommonHealthStoreConfiguration` object (see below). For example, defining the following manifest placeholders in `app/build.gradle`:
 
 ```
-<activity android:name=".AuthorizationManagementActivity"
-        android:exported="false"
-        android:theme="@style/Theme.AppCompat.NoActionBar"
-        android:launchMode="singleTask" />
+android {
+ defaultConfig {
+  ...
+  manifestPlaceholders.interappAuthRedirectScheme = "YOUR FULL APP PACKAGE" // ex: org.thecommonsproject.android.commonhealth.sampleapp
+  manifestPlaceholders.interappAuthRedirectHost = "interapp"
+  manifestPlaceholders.interappAuthRedirectPath = "/redirect"
+  buildConfigField("String", "APPLICATION_ID", "\"YOUR FULL APP PACKAGE\"")
+  ...
+ } 
+}
 
-<activity android:name=".RedirectUriReceiverActivity" android:exported="true">
-    <intent-filter>
-        <action android:name="android.intent.action.VIEW"/>
-        <category android:name="android.intent.category.DEFAULT"/>
-        <category android:name="android.intent.category.BROWSABLE"/>
-        <data
-                android:host="${interappAuthRedirectHost}"
-                android:pathPrefix="${interappAuthRedirectPath}"
-                android:scheme="${interappAuthRedirectScheme}" />
-    </intent-filter>
-</activity>
-
-<service
-        android:name="org.thecommonsproject.android.commonhealthclient.service.IdentityTokenJobIntentService"
-        android:exported="false"
-        android:permission="android.permission.BIND_JOB_SERVICE"/>
-
-<receiver
-        android:name="org.thecommonsproject.android.commonhealthclient.service.IdentityTokenBroadcastReceiver"
-        android:exported="true">
-    <intent-filter>
-        <action android:name="org.thecommonsproject.android.common.interapp.identitytoken.broadcastreceiver.action.IDENTITY_TOKEN_REQUEST" />
-    </intent-filter>
-</receiver>
-```
-
-Our authorization process is inspired by OAuth and requires that the `RedirectUriReceiverActivity` receive a redirect from CommonHealth. Applications must define the `interappAuthRedirectScheme`, `interappAuthRedirectHost`, and `interappAuthRedirectPath` manifest placeholders in the app's `build.gradle` file, and the compiled URL must match the `authorizationCallbackUri` in the `CommonHealthStoreConfiguration` object (see below). For example, defining the following manifest placeholders in your `build.gradle` file:
-
-```
-manifestPlaceholders.interappAuthRedirectScheme = "org.thecommonsproject.android.commonhealth.sampleapp"
-manifestPlaceholders.interappAuthRedirectHost = "interapp"
-manifestPlaceholders.interappAuthRedirectPath = "/redirect"
 ```
 
 Translates to `org.thecommonsproject.android.commonhealth.sampleapp://interapp/redirect`
 
-## Initialization 
+## Initialization
 
 ### CommonHealthStore Configuration
 
@@ -116,12 +88,12 @@ val notificationPreferences = NotificationPreferences(
     }
 )
 val configuration = CommonHealthStoreConfiguration(
-    appId = BuildConfig.APPLICATION_ID,
-    commonHealthAppId = "org.thecommonsproject.android.phr.developer",
+    appId = BuildConfig.APPLICATION_ID, // 
+    commonHealthAppId = "YOUR FULL PACKAGE NAME",
     developerModeEnabled = true,
     attestationServiceConfiguration = null,
-    commonHealthAuthorizationUri = "org.thecommonsproject.android.phr://interapp/auth",
-    authorizationCallbackUri = "org.thecommonsproject.android.commonhealth.sampleapp://interapp/redirect",
+    commonHealthAuthorizationUri = "org.thecommonsproject.android.phr.developer://interapp/auth", // remove ".developer" for production
+    authorizationCallbackUri = "YOUR FULL PACKAGE NAME://interapp/redirect",
     notificationPreferences = notificationPreferences
 )
 ```
@@ -130,11 +102,11 @@ Note that the the `interappAuthRedirectScheme`, `interappAuthRedirectHost`, and 
 
 In order to store the keys required to secure the connection(s) with the CommonHealth application, the client application must also provide a secure implementation of the `NamespacedKeyValueStore` interface. This object persists the stored values across application launches. 
 
-The `common` module provides a `NamespacedKeyValueStore` implementation that utilizes the Android Room architecture component. If you're not using Android Room for persistence, you can provide an implementation using the persistence method of your choosing. 
+The `common` module provides a `NamespacedKeyValueStore` implementation that utilizes the Android Room architecture component. If you're not using Android Room for persistence, you can provide an implementation using the persistence method of your choosing.
 
 To help with security, the `common` module provides `SecureNamespacedKeyValueStore` to automatically encrypt and decrypt values. This class leverages the Google Tink encryption library and a key stored in the Android Keystore.
 
-The `SampleApplication` class contains the following code to create a `SecureNamespacedKeyValueStore`:
+The `SampleApplication` class contains the following code (including helper methods like createDatabase) to create a `SecureNamespacedKeyValueStore`:
 
 ```
 val cryptoProvider = DefaultCryptoProvider(DefaultAndroidKeystoreClientWrapper())
@@ -164,14 +136,30 @@ You'll likely notice that many of the interface methods require a `connectionAli
 
 ### Check that CommonHealth is available
 
+Declare <queries> in `Android Manifest.xml` the package that will be launched.
+
+```
+<manifest>
+
+    <application>
+     ...
+    </application>
+    <queries>
+        <package android:name="org.thecommonsproject.android.phr.developer"/>
+    </queries>
+
+</manifest>
+```
+
+
 The `CommonHealthStore` class provides the `getCommonHealthAvailability` method that can help determine how (or how not) to interact with CommonHealth:
 
 ```
 val chStore = CommonHealthStore.getSharedInstance()
 val chAvailability = chStore.getCommonHealthAvailability(context)
 when(chAvailability) {
-    CommonHealthAvailability.NOT_INSTALLED -> { } // show install UX
-    CommonHealthAvailability.ACCOUNT_NOT_CONFIGURED_FOR_SHARING -> { } // this can indicate that a user has disabled sharing entirely or that their device is unsuitable for sharing (ex. device is rooted)
+    CommonHealthAvailability.NotInstalled -> { } // show install UX
+    CommonHealthAvailability.NotConfiguredForSharing -> { } // this can indicate that a user has disabled sharing entirely or that their device is unsuitable for sharing (ex. device is rooted)
     CommonHealthAvailability.AVAILABLE -> { } // Suitable for authorization or querying if consent has been given
 }
 ```
@@ -278,7 +266,7 @@ val authorizationRequest = AuthorizationRequest(
     "Sample app would like to read your labs, vitals, and conditions."
 )
 
-val intent = AuthorizationManagementActivity.createStartForResultIntent(
+val authIntent = AuthorizationManagementActivity.createStartForResultIntent(
     context,
     authorizationRequest
 )
@@ -389,72 +377,3 @@ CommonHealth performs SMART® Health Card validation prior to ingesting the card
 ## Registering with CommonHealth
 
 Registering with CommonHealth is not required to begin testing integrations with CommonHealth Developer Edition. However, if you have a client application that you would like to use in staging or production environments, you'll need to register the application with CommonHealth. This is similar to registering an OAuth client, where you would specify information such as required scope, authorization redirect URI, etc. Please reach out to developers [at] commonhealth.org for more information.
-
-## Upgrading from v1.6.2 to v1.6.4
-`v1.6.4` updated our SMART IT Sandbox version:
-
-- Upgraded to SMART IT Sandbox R4 from DSTU2
-- Make sure to use the R4 Patient Browser (listed above) rather than the previously linked DSTU2 browser for finding valid patients
-
-## Upgrading from v1.3.15 to v1.6.2
-`v1.6.2` introduced insurance data:
-
-- Support for Insurance data through the CMS Blue Button 2.0 Sandbox. This will require you to register with CMS an app with a redirect url to CommonHealth, and then for you to provide the client id/secret locally into CommonHealth so that you can download the data. Please see section "Using CMS Blue Button Sandbox" above.
-- Minor change to readSampleQuery(..) parameters
-
-## Upgrading from v1.1.2 to v1.3.15
-`v1.3.15` introduced a small number of changes:
-
-- Support for requesting access to Verifiable Credentials (SMART® Health Cards) is now in beta
-- Updates to support higher Android OS levels (specifically changes to accommodate new restrictions on apps calling into packageManager)
-
-## Upgrading from v0.4.8 to v1.1.2
-`v1.1.2` introduced a small number of changes:
-
- - The constructor for `SecureNamespacedKeyValueStore` now requires a `CryptoProvider` object.
- - The artifacts names have changed:
-    - `org.thecommonsproject.commonhealth:common` is now `org.thecommonsproject:commonhealth-common`
-    - `org.thecommonsproject.commonhealth:commonhealthclient` is now `org.thecommonsproject:commonhealth-client`
- - The artifacts are now hosted in Maven Central.
-
-## Upgrading from v0.4.4 to v0.4.8
-`v0.4.8` introduced a number of large changes and enhancements to the API:
-
- - CommonHealthStoreConfiguration now has a required NotificationPreferences property
- - AuthorizationResponses are now communicated as a notification to a subscriber contained in the CommonHealthStoreConfiguration
- - A new `getRecordUpdates` method was added to the CommonHealthStore to help determine changes to the data
- - A `NEW_DATA_AVAILABLE` notificationType is added to support receiving updates asynchronously from CommonHealth
- - The `isCommonHealthAvailable` method was removed in favor of the new `getCommonHealthAvailability`
-
-## Upgrading from v0.4.0 to v0.4.4
-`v0.4.4` introduced a small number of changes to the API:
-
- - Scope requests can now be limited to a specific set of codes within a data type.
- - The `inactive` value was added to the `CommonHealthAuthorizationStatus` enum.
- - The optional `fetchedAfter` parameter was added to the `readSampleQuery` interface method. This parameter can be used to limit responses to resources added or updated after a certain date.
-
-Additionally, the following maven repo is now required:
-
-    maven { url "https://jitpack.io" }
-
-## Upgrading from v0.3.0 to v0.4.0
-No functional changes to the API were introduced in `v0.4.0`.
-
-## Upgrading from v0.2.0 to v0.3.0
-`v0.3.0` introduced a number of changes:
-
- - Introduced the `CommonHealthAuthorizationActivityResponse` class to assist with decoding responses from `AuthorizationManagementActivity`.
- - Connections now timeout after 90 days. After that, the client application will need to request authorization again OR the user can also renew the connection via client application detail view in the CommonHealth application. If the connection has timed out, the `checkAuthorizationStatus` method will return `CommonHealthAuthorizationStatus.connectionExpired`.
- - The `readSampleQuery` performs additional validation on `before` and `after` parameters.
- - Public `CommonHealthStore` methods have been annotated to indicate that they throw.
-
-## Upgrading from v0.1.0 to v0.2.0
-
-`v0.2.0` introduced a number of changes, some of them breaking.
-
- - Introduced `AuthorizationManagementActivity.USER_CANCELED` activity status code that is returned to the initiating activity in the case that the user cancels authorization.
- - Removed requirement that applications perform initialization on the `Tink` and `AndroidThreeTen` libraries. This also results in removing application build dependencies on these libraries.
- - `CommonHealthStoreConfiguration.Builder` class has been removed. Applications should create instances of this class directly. 
- - Removed the `CommonHealthStoreProvider` interface and dependency on the custom Application implementation to adopt the interface. Implementers should instead initialize the `CommonHealthStore` singleton via the `CommonHealthStore.initialize` static method. The `CommonHealthStore.getSharedInstance` static method is provided for accessing the `CommonHealthStore` singleton.
- - Removed the requirement for applications to include SDK specific `service`, `broadcastreciever`, and `activity` components in the application manifest. These have been moved to the SDK manifest file and will be merged in during the build process. We've added a requirement that applications define the `interappAuthRedirectScheme`, `interappAuthRedirectHost`, and `interappAuthRedirectPath` manifest placeholders in the app's `build.gradle` file.
- - Replaced the `CommonHealthStore` `executeDataQuery` method with `readSampleQuery`. 
