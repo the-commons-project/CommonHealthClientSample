@@ -36,17 +36,14 @@ implementation "org.thecommonsproject:commonhealth-common:1.6.4"
 implementation "org.thecommonsproject:commonhealth-client:1.6.4"
 ```
 
-The release artifacts are made avalable via the Maven Central repository, so you will need to have the following in your list of dependency repositories:
+The release artifacts are made avalable via the Maven Central repository and some dependencies are in Jitpack, so you will need to have the following in your list of dependency repositories (probably settings.gradle):
 
 `mavenCentral()`
-
-Additionally, some dependency artifacts are served by Jitpack, so you will also need to add the following maven repository:
-
 `maven { url "https://jitpack.io" }`
 
 ### Manifest Placeholders
 
-The interapplication data sharing functionality of CommonHealth leverages native Android communication components. The CommonHealth Client SDK defines the following activities, services, and receivers in its `manifest.xml` file, which will be merged into the application's manifest during the build process:
+The interapplication data sharing functionality of CommonHealth leverages native Android communication components. The CommonHealth Client SDK defines the following activities, services, and receivers in its `manifest.xml` file, which will be merged into the application's manifest during the build process automatically:
 
 ```
 <activity android:name=".AuthorizationManagementActivity"
