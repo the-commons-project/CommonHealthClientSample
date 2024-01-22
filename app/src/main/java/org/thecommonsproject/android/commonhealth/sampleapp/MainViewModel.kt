@@ -11,6 +11,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.actor
 import org.thecommonsproject.android.common.interapp.CommonHealthAuthorizationStatus
+import org.thecommonsproject.android.common.interapp.dataquery.cardtypes.InterappHealthCardType
 import org.thecommonsproject.android.common.interapp.dataquery.response.DataQueryResult
 import org.thecommonsproject.android.common.interapp.dataquery.response.FHIRSampleDataQueryResult
 import org.thecommonsproject.android.common.interapp.dataquery.response.RecordUpdateQueryResult
@@ -40,7 +41,7 @@ class MainViewModel(
 
     var storedVCResults = emptyList<VerifiableRecordSampleDataQueryResult>()
 
-    val allDataTypes: List<DataType.FHIRResource> = listOf(
+    val allDataTypes: List<DataType> = listOf(
         DataType.ClinicalResource.AllergyIntoleranceResource,
         DataType.ClinicalResource.ClinicalVitalsResource,
         DataType.ClinicalResource.ConditionsResource,
@@ -48,10 +49,15 @@ class MainViewModel(
         DataType.ClinicalResource.LaboratoryResultsResource,
         DataType.ClinicalResource.MedicationResource,
         DataType.ClinicalResource.ProceduresResource,
-        DataType.PayerResource.ExplanationOfBenefitResource,
+        DataType.ClinicalResource.CarePlanResource,
+        DataType.ClinicalResource.GoalResource,
+        DataType.ClinicalResource.DocumentReferenceResource,
         DataType.PayerResource.CoverageResource,
+        DataType.PayerResource.ExplanationOfBenefitResource,
+        DataType.OMHealthResource.BloodPressure,
+        DataType.OMHealthResource.BloodGlucose,
+        DataType.OMHealthResource.HeartRate
     )
-
 
     val scopeRequest: ScopeRequest by lazy {
         val builder = ScopeRequest.Builder()
@@ -185,7 +191,11 @@ class MainViewModel(
     suspend fun fetchC19VaxStatus(context: Context): List<VerifiableRecordSampleDataQueryResult> {
         val results = commonHealthStore.readVerifiableCredentials(
             context,
-            c19VaxVcTypes
+            setOf(
+                InterappHealthCardType.SHL_IPS,
+                InterappHealthCardType.SHL_PAYER,
+                InterappHealthCardType.SHC
+            )
         )
         storedVCResults = results
         return results
