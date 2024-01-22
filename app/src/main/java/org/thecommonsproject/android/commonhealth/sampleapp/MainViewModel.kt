@@ -15,6 +15,7 @@ import org.thecommonsproject.android.common.interapp.dataquery.cardtypes.Interap
 import org.thecommonsproject.android.common.interapp.dataquery.response.DataQueryResult
 import org.thecommonsproject.android.common.interapp.dataquery.response.FHIRSampleDataQueryResult
 import org.thecommonsproject.android.common.interapp.dataquery.response.RecordUpdateQueryResult
+import org.thecommonsproject.android.common.interapp.dataquery.response.SampleDataQueryResult
 import org.thecommonsproject.android.common.interapp.dataquery.response.VerifiableRecordSampleDataQueryResult
 import org.thecommonsproject.android.common.interapp.scope.DataType
 import org.thecommonsproject.android.common.interapp.scope.Scope
@@ -28,14 +29,6 @@ import timber.log.Timber
 class MainViewModel(
     private val commonHealthStore: CommonHealthStore
 ) : ViewModel() {
-
-    companion object {
-        private val c19VaxVcTypes = setOf(
-            "https://smarthealth.cards#immunization",
-            "https://smarthealth.cards#covid19",
-            "https://smarthealth.cards#health-card"
-        )
-    }
 
     private val connectionAlias = "connection_alias"
 
@@ -54,9 +47,10 @@ class MainViewModel(
         DataType.ClinicalResource.DocumentReferenceResource,
         DataType.PayerResource.CoverageResource,
         DataType.PayerResource.ExplanationOfBenefitResource,
-        DataType.OMHealthResource.BloodPressure,
-        DataType.OMHealthResource.BloodGlucose,
-        DataType.OMHealthResource.HeartRate
+        // Supported by SDK but no example data sources for developer usage
+//        DataType.OMHealthResource.BloodPressure,
+//        DataType.OMHealthResource.BloodGlucose,
+//        DataType.OMHealthResource.HeartRate
     )
 
     val scopeRequest: ScopeRequest by lazy {
@@ -69,11 +63,12 @@ class MainViewModel(
 
     sealed class ResultHolderMessage {
         class SetResults(val resourceType: DataType.FHIRResource, val results: List<FHIRSampleDataQueryResult>) : ResultHolderMessage()
+        class SetMhealthResults(val resourceType: DataType.OMHealthResource, val results: List<SampleDataQueryResult>) : ResultHolderMessage()
         class SetRecordUpdateResults(val results: List<RecordUpdateQueryResult>) : ResultHolderMessage()
     }
 
-    private var resultsMap: Map<DataType.FHIRResource, List<FHIRSampleDataQueryResult>> = emptyMap()
-    var resultsLiveData: MutableLiveData<Map<DataType.FHIRResource, List<FHIRSampleDataQueryResult>>> = MutableLiveData(resultsMap)
+    private var resultsMap: Map<DataType, List<SampleDataQueryResult>> = emptyMap()
+    var resultsLiveData: MutableLiveData<Map<DataType, List<SampleDataQueryResult>>> = MutableLiveData(resultsMap)
     val recordUpdatesLiveData = MutableLiveData<List<RecordUpdateQueryResult>>()
 
     // This function launches a new counter actor
@@ -82,6 +77,15 @@ class MainViewModel(
         for (msg in channel) { // iterate over incoming messages
             when (msg) {
                 is ResultHolderMessage.SetResults -> {
+                    when (val existingResults = resultsMap[msg.resourceType]) {
+                        null -> {}
+                        else -> { assert(existingResults.count() == msg.results.count()) }
+                    }
+
+                    resultsMap = resultsMap.plus(Pair(msg.resourceType, msg.results))
+                    resultsLiveData.postValue(resultsMap)
+                }
+                is ResultHolderMessage.SetMhealthResults -> {
                     when (val existingResults = resultsMap[msg.resourceType]) {
                         null -> {}
                         else -> { assert(existingResults.count() == msg.results.count()) }
@@ -134,9 +138,23 @@ class MainViewModel(
         )
     }
 
-    private suspend fun fetchData(context: Context, dataType: DataType.FHIRResource) : List<DataQueryResult>{
+    private suspend fun fetchFHIRData(context: Context, dataType: DataType.FHIRResource) : List<DataQueryResult>{
         return try {
             commonHealthStore.readSampleQuery(
+                context,
+                connectionAlias,
+                setOf(dataType),
+                Pair(null, null)
+            )
+        } catch (e: Throwable) {
+            Timber.e( e, "Exception fetching data")
+            emptyList()
+        }
+    }
+
+    private suspend fun fetchMHealthData(context: Context, dataType: DataType.OMHealthResource) : List<SampleDataQueryResult>{
+        return try {
+            commonHealthStore.readMHealthSampleQuery(
                 context,
                 connectionAlias,
                 setOf(dataType),
@@ -161,13 +179,15 @@ class MainViewModel(
     }
 
     suspend fun fetchAllData(context: Context) {
-        val typesToFetch = allDataTypes
-        val sampleQueryFetchJobs = typesToFetch.map { dataType ->
+        val mHealthTypes = allDataTypes.filterIsInstance<DataType.OMHealthResource>()
+        val fhirTypes = allDataTypes.filterIsInstance<DataType.FHIRResource>()
+
+        val sampleFHIRQueryFetchJobs = fhirTypes.map { fhirType ->
             CoroutineScope(Dispatchers.IO).launch {
-                val results = fetchData(context, dataType).mapNotNull { it as? FHIRSampleDataQueryResult }
+                val results = fetchFHIRData(context, fhirType).mapNotNull { it as? FHIRSampleDataQueryResult }
                 resultsHolderActor!!.send(
                     ResultHolderMessage.SetResults(
-                        dataType,
+                        fhirType,
                         results
                     )
                 )
@@ -181,14 +201,14 @@ class MainViewModel(
             )
         }
 
-        (listOf(recordUpdatesFetchJob) + sampleQueryFetchJobs).joinAll()
+        (listOf(recordUpdatesFetchJob) + sampleFHIRQueryFetchJobs).joinAll()
     }
 
     suspend fun getCommonHealthAvailability(context: Context): CommonHealthAvailability {
         return commonHealthStore.getCommonHealthAvailability(context)
     }
 
-    suspend fun fetchC19VaxStatus(context: Context): List<VerifiableRecordSampleDataQueryResult> {
+    suspend fun fetchHealthCards(context: Context): List<VerifiableRecordSampleDataQueryResult> {
         val results = commonHealthStore.readVerifiableCredentials(
             context,
             setOf(

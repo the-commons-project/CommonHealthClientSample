@@ -88,7 +88,7 @@ class CategoryListFragment : Fragment() {
         requestShcsButton = view.findViewById(R.id.request_shcs)
         requestShcsButton.isEnabled = false
         requestShcsButton.setOnClickListener {
-            requestC19VaxStatus()
+            requestHealthCards()
         }
 
         spinner = view.findViewById(R.id.progress_bar)
@@ -108,11 +108,11 @@ class CategoryListFragment : Fragment() {
         updateUI()
     }
 
-    private fun requestC19VaxStatus() {
+    private fun requestHealthCards() {
         val context = context ?: return
         viewModel.viewModelScope.launch {
             spinner.visibility = View.VISIBLE
-            val results = viewModel.fetchC19VaxStatus(context)
+            val results = viewModel.fetchHealthCards(context)
             spinner.visibility = View.GONE
             if (results.isEmpty()) {
                 Toast.makeText(requireContext(), "Fetched 0 Verifiable Credentials", Toast.LENGTH_LONG).show()
@@ -159,7 +159,7 @@ class CategoryListFragment : Fragment() {
 
             when(authorizationStatus) {
                 CommonHealthAuthorizationStatus.unnecessary -> {
-                    Toast.makeText(requireContext(), "Authorization not needed", Toast.LENGTH_LONG).show()
+                    Toast.makeText(requireContext(), "App is authorized!", Toast.LENGTH_LONG).show()
                     authorizeButton.isEnabled = false
                 }
                 CommonHealthAuthorizationStatus.shouldRequest -> {
@@ -206,8 +206,8 @@ class CategoryListFragment : Fragment() {
         private val generateOnClickListener: (DataType) -> View.OnClickListener
     ) : RecyclerView.Adapter<CategoryListItemViewHolder>() {
 
-        private var resultsCounts: Map<DataType.FHIRResource, Int>? = null
-        fun updateResultsCounts(newResultsCounts: Map<DataType.FHIRResource, Int>) {
+        private var resultsCounts: Map<DataType, Int>? = null
+        fun updateResultsCounts(newResultsCounts: Map<DataType, Int>) {
             resultsCounts = newResultsCounts
             notifyDataSetChanged()
         }

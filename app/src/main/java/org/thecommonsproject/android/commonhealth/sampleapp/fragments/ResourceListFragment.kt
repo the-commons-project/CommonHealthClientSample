@@ -16,10 +16,14 @@ import androidx.navigation.navOptions
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import org.thecommonsproject.android.common.interapp.dataquery.response.FHIRSampleDataQueryResult
+import org.thecommonsproject.android.common.interapp.dataquery.response.MHealthSampleDataQueryResult
+import org.thecommonsproject.android.common.interapp.dataquery.response.SampleDataQueryResult
+import org.thecommonsproject.android.common.interapp.dataquery.response.VerifiableRecordSampleDataQueryResult
 import org.thecommonsproject.android.common.interapp.scope.DataType
 import org.thecommonsproject.android.commonhealth.sampleapp.MainViewModel
 import org.thecommonsproject.android.commonhealth.sampleapp.R
 import org.thecommonsproject.android.commonhealth.sampleapp.getVmFactory
+import timber.log.Timber
 
 /**
  * A simple [Fragment] subclass.
@@ -48,14 +52,8 @@ class ResourceListFragment : Fragment() {
 
         val navController = findNavController()
 
-        val generateOnClickListener: (FHIRSampleDataQueryResult) -> View.OnClickListener = { result ->
+        val generateOnClickListener: (SampleDataQueryResult) -> View.OnClickListener = { result ->
             View.OnClickListener { view ->
-                //prefetch based on selected recordSummaryViewType
-//                dashboardViewModel.prefetchResourceSummariesForType(
-//                    dataGroupSummary,
-//                    summaryViewType
-//                )
-
                 val options = navOptions {
                     anim {
                         enter = R.anim.slide_in_right
@@ -101,11 +99,11 @@ class ResourceListFragment : Fragment() {
     }
 
     class ContentAdapter(
-        private val generateOnClickListener: (FHIRSampleDataQueryResult) -> View.OnClickListener
+        private val generateOnClickListener: (SampleDataQueryResult) -> View.OnClickListener
     ) : RecyclerView.Adapter<ResourceListItemViewHolder>() {
 
-        private var resources: List<FHIRSampleDataQueryResult> = emptyList()
-        fun updateResources(newResources: List<FHIRSampleDataQueryResult>) {
+        private var resources: List<SampleDataQueryResult> = emptyList()
+        fun updateResources(newResources: List<SampleDataQueryResult>) {
             resources = newResources
             notifyDataSetChanged()
         }
@@ -122,8 +120,23 @@ class ResourceListFragment : Fragment() {
 
             val resource = resources[position]
 
-            holder.title.text = resource.displayText
-            holder.subtitle.text = resource.secondaryDisplayText
+            var title = ""
+            var subtitle = ""
+            when (resource) {
+                is FHIRSampleDataQueryResult -> {
+                    title = resource.displayText
+                    subtitle = resource.secondaryDisplayText
+                }
+                is MHealthSampleDataQueryResult -> {
+                    title = resource.resourceType.uniqueKey
+                    subtitle = resource.resourceType.toJson()
+                }
+                is VerifiableRecordSampleDataQueryResult -> {
+                    Timber.w("XXYZ VerifiableRecordSampleDataQueryResult not expected")
+                }
+            }
+            holder.title.text = title
+            holder.subtitle.text = subtitle
             holder.actionButton.visibility = View.VISIBLE
             holder.actionButton.setOnClickListener(
                 generateOnClickListener(resource)
