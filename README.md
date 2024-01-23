@@ -32,8 +32,8 @@ For insurance data, use the CMS Blue Button Sandbox. You will have to provider y
 The CommonHealth Client SDK consists of two modules: commonhealth-client and commonhealth-common. CommonHealthClient contains the bulk of functionality for the SDK, while common contains types shared between the CommonHealth application and the CommonHealth Client SDK. You'll need to add the following to your application's list of dependencies:
 
 ```
-implementation "org.thecommonsproject:commonhealth-common:1.6.4"
-implementation "org.thecommonsproject:commonhealth-client:1.6.4"
+implementation "org.thecommonsproject:commonhealth-common:1.9.8"
+implementation "org.thecommonsproject:commonhealth-client:1.9.8"
 ```
 
 The release artifacts are made avalable via the Maven Central repository and some dependencies are in Jitpack, so you will need to have the following in your list of dependency repositories (probably settings.gradle):
