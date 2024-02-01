@@ -132,7 +132,7 @@ class ResourceListFragment : Fragment() {
                     subtitle = resource.resourceType.toJson()
                 }
                 is VerifiableRecordSampleDataQueryResult -> {
-                    Timber.w("XXYZ VerifiableRecordSampleDataQueryResult not expected")
+                    Timber.w("VerifiableRecordSampleDataQueryResult not expected")
                 }
             }
             holder.title.text = title

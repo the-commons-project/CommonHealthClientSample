@@ -26,7 +26,7 @@ allprojects {
         maven { url 'https://jitpack.io' }
         // CH Snapshot repo
 //         maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots' }
-        mavenLocal()
+//        mavenLocal()
     }
 }
 
