@@ -71,7 +71,7 @@ class SampleApplication: Application() {
                             is CommonHealthAuthorizationActivityResponse.UserCanceled -> Timber.d("User canceled authorization")
                         }
                     }
-                    is CommonHealthNotification.SingleAuthorizationResult -> TODO("TODO HELLO")
+                    is CommonHealthNotification.SingleAuthorizationResult -> Timber.w("SingleAuthorizationResult not handled")
                 }
             }
         )
