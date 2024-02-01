@@ -50,7 +50,7 @@
                 android:layout_gravity="center"
                 android:layout_width="@dimen/button_width"
                 android:layout_height="wrap_content"
-                android:text="@string/request_covid_19_shcs"/>
+                android:text="@string/request_health_cards"/>
 
         </LinearLayout>
 

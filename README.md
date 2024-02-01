@@ -2,13 +2,13 @@
 
 The CommonHealth Client SDK provides an interface that allows applications to access health data stored in CommonHealth.
 
-The CommonHealth Client SDK is in open beta. 
+The CommonHealth Client SDK is in open beta.
 
-If you're interested in developing a production integration with the CommonHealth Client SDK, please reach out to developers [at] commonhealth.org to begin the process of being whitelisted. 
+If you're interested in developing a production integration with the CommonHealth Client SDK, please reach out to developers [at] commonhealth.org to begin the process of being whitelisted.
 
 While we consider the SDK to be relatively stable, this is pre-release software, so the interfaces are subject to change based on evolving requirements and developer feedback. We're currently investigating ways to make it easier to remove configuration dependencies, so if you find anything particularly burdensome or confusing, please let us know by either emailing us or opening a Github issue.
 
-## Audience 
+## Audience
 This quick start guide is geared towards participants in our closed beta program. This guide assumes that you have CommonHealth Developer Edition installed on your device and you have gone through the enrollment process in the application.
 
 ## CommonHealth Developer Edition
@@ -32,8 +32,8 @@ For insurance data, use the CMS Blue Button Sandbox. You will have to provider y
 The CommonHealth Client SDK consists of two modules: commonhealth-client and commonhealth-common. CommonHealthClient contains the bulk of functionality for the SDK, while common contains types shared between the CommonHealth application and the CommonHealth Client SDK. You'll need to add the following to your application's list of dependencies:
 
 ```
-implementation "org.thecommonsproject:commonhealth-common:1.6.4"
-implementation "org.thecommonsproject:commonhealth-client:1.6.4"
+implementation "org.thecommonsproject:commonhealth-common:1.9.8"
+implementation "org.thecommonsproject:commonhealth-client:1.9.8"
 ```
 
 The release artifacts are made avalable via the Maven Central repository and some dependencies are in Jitpack, so you will need to have the following in your list of dependency repositories (probably settings.gradle):
@@ -66,7 +66,7 @@ Translates to `org.thecommonsproject.android.commonhealth.sampleapp://interapp/r
 
 ### CommonHealthStore Configuration
 
-The client application must initialize the `CommonHealthStore` singleton by providing a `Application`, `CommonHealthStoreConfiguration` object, and an object that implements the `NamespacedKeyValueStore` interface. 
+The client application must initialize the `CommonHealthStore` singleton by providing a `Application`, `CommonHealthStoreConfiguration` object, and an object that implements the `NamespacedKeyValueStore` interface.
 
 For development, you can use the following to create the `CommonHealthStoreConfiguration` object:
 
@@ -100,7 +100,7 @@ val configuration = CommonHealthStoreConfiguration(
 
 Note that the the `interappAuthRedirectScheme`, `interappAuthRedirectHost`, and `interappAuthRedirectPath` manifest placeholders must translate into the Uri specified by the `authorizationCallbackUri` parameter.
 
-In order to store the keys required to secure the connection(s) with the CommonHealth application, the client application must also provide a secure implementation of the `NamespacedKeyValueStore` interface. This object persists the stored values across application launches. 
+In order to store the keys required to secure the connection(s) with the CommonHealth application, the client application must also provide a secure implementation of the `NamespacedKeyValueStore` interface. This object persists the stored values across application launches.
 
 The `common` module provides a `NamespacedKeyValueStore` implementation that utilizes the Android Room architecture component. If you're not using Android Room for persistence, you can provide an implementation using the persistence method of your choosing.
 
@@ -233,12 +233,12 @@ suspend fun checkAuthorizationStatus(
 
 The `CommonHealthAuthorizationStatus` enum defines the following values:
 
- - `shouldRequest`
- - `unnecessary`
- - `cannotAuthorize`
- - `exceedsMaximumAllowedScope`
- - `connectionExpired`
- - `inactive`
+- `shouldRequest`
+- `unnecessary`
+- `cannotAuthorize`
+- `exceedsMaximumAllowedScope`
+- `connectionExpired`
+- `inactive`
 
 The `shouldRequest` value means that the application needs to request authorization in order to query resources specified in the scope request.
 
@@ -296,12 +296,12 @@ suspend fun readSampleQuery(
 
 As you can see, the method returns a list of `SampleDataQueryResult` instances. For requests for FHIR data, these can be cast to `FHIRSampleDataQueryResult` instances. Each `FHIRSampleDataQueryResult` instance contains the following:
 
- - resourceType: DataType.FHIRResource - the type of the resource
- - json: String - JSON string representation of the FHIR resource
- - displayText: String - The primary display text computed from the resource by CommonHealth 
- - secondaryDisplayText: String - The secondary display text computed from the resource by CommonHealth
- - chId: UUID - A random, stable identifier for this given resource computed by CommonHealth
- - fhirVersion: String - The given FHIR version corresponding to this resource
+- resourceType: DataType.FHIRResource - the type of the resource
+- json: String - JSON string representation of the FHIR resource
+- displayText: String - The primary display text computed from the resource by CommonHealth
+- secondaryDisplayText: String - The secondary display text computed from the resource by CommonHealth
+- chId: UUID - A random, stable identifier for this given resource computed by CommonHealth
+- fhirVersion: String - The given FHIR version corresponding to this resource
 
 See `ResourceListFragment` for an example implementation of the data query building and data fetching process.
 
@@ -309,8 +309,8 @@ See `ResourceListFragment` for an example implementation of the data query build
 
 As part of the NotificationPreferences configuration in the CommonHealthStoreConfiguration, you can subscribe to various notification types:
 
- - CommonHealthNotificationType.AUTHORIZATION_FLOW_COMPLETED_WITH_RESULT - notification containing the authorization response / result
- - CommonHealthNotificationType.NEW_DATA_AVAILABLE - notification informing that new data is available
+- CommonHealthNotificationType.AUTHORIZATION_FLOW_COMPLETED_WITH_RESULT - notification containing the authorization response / result
+- CommonHealthNotificationType.NEW_DATA_AVAILABLE - notification informing that new data is available
 
 Upon receiving the NEW_DATA_AVAILABLE notification, you can invoke a method on the CommonHealthStore to receive a list of record updates over a given timeframe:
 
@@ -324,15 +324,15 @@ Upon receiving the NEW_DATA_AVAILABLE notification, you can invoke a method on t
 ): List<RecordUpdateQueryResult> {
  ```
 
- The `after` and `before` optional parameters allow you specify an interval of time from which to receive a list of record update events. Each record update event contains:
+The `after` and `before` optional parameters allow you specify an interval of time from which to receive a list of record update events. Each record update event contains:
 
- - CHRecordId: UUID - a stable, random, CH-generated unique identifier for a given record
- - updateType: RecordUpdateQueryResult.UpdateType - an enum containing UPDATE_OR_INSERT or DELETION cases
- - date: Date - timestamp for the given update
+- CHRecordId: UUID - a stable, random, CH-generated unique identifier for a given record
+- updateType: RecordUpdateQueryResult.UpdateType - an enum containing UPDATE_OR_INSERT or DELETION cases
+- date: Date - timestamp for the given update
 
- Using these can help you identify when and if you need to pull data from CommonHealth, or if data has been deleted in CommonHealth and should be removed from your local datastore, if persisted.
+Using these can help you identify when and if you need to pull data from CommonHealth, or if data has been deleted in CommonHealth and should be removed from your local datastore, if persisted.
 
-### Using CMS Blue Button Sandbox -- new in v1.6.2 and currently in beta
+### Using CMS Blue Button Sandbox -- currently in beta
 
 _Note: This feature is currently in beta and should not yet be used in production applications. We'd love your feedback as you start using it; please open a Github issue, or email developers [at] commonhealth.org with any thoughts that you have. Thank you!_
 
@@ -344,31 +344,30 @@ Be sure to register your sandbox app with our redirect url: org.thecommonsprojec
 
 We can\'t use our own so you\'ll have to provide one. We will save this id and secret only locally, for your development convenience. We never send this client id/secret anywhere except to the authorization server for OAuth.
 
-### Reading Verifiable Credentials (SMART® Health Cards) -- new in v1.3.15 and currently in beta 
+### Reading Verifiable Credentials (SMART® Health Cards and SMART® Health Links)
 
 _Note: This feature is currently in beta and should not yet be used in production applications. We'd love your feedback as you start using it; please open a Github issue, or email developers [at] commonhealth.org with any thoughts that you have. Thank you!_
 
-Client applications can now request to read Verifiable Credentials (SMART® Health Cards) from CommonHealth. This is a completely separate, independent flow from requesting other types of health data. 
+Client applications can request to read Verifiable Credentials (SMART® Health Cards) from CommonHealth. This is a completely separate, independent flow from requesting other types of health data.
 
-Client applications simply request access based on a set of Verifiable Credential types, and if the user consents to sharing any SMART® Health Cards that match the requested types, then the data will be returned immediately to the calling application. There is no persistent connection established, and the client application will have to request again (and the user consent again) to access the same data. 
+Client applications simply request access based on a set of Verifiable Credential types, and if the user consents to sharing any SMART® Health Cards that match the requested types, then the data will be returned immediately to the calling application. There is no persistent connection established, and the client application will have to request again (and the user consent again) to access the same data.
 
 Invoking the `readVerifiableCredentials` will redirect to CommonHealth, initiating a consent flow where the user can select which SHCs (or none) to share.
 
 Here's a snippet demonstrating how the new `readVerifiableCredentials` method can be called to retrieve COVID-19 Vaccination SMART® Health Cards:
 
  ```
-// Determine which VC types you'd like to read
-// In this case, we're requesting COVID-19 Vaccination records.  
-val c19VaxVcTypes = setOf(
-    "https://smarthealth.cards#immunization",
-    "https://smarthealth.cards#covid19",
-    "https://smarthealth.cards#health-card"
+// Determine which Health Card types you'd like to read
+val interappHealthCardTypes = setOf(
+    InterappHealthCardType.SHC,
+	InterappHealthCardType.SHL_PAYER,
+	InterappHealthCardType.SHL_IPS,
 )
 
 // Pass the VC Types into the readVerifiableCredentials suspending method        
 val smartHealthCards = commonHealthStore.readVerifiableCredentials(
-    context,
-    c19VaxVcTypes
+            context,
+            interappHealthCardTypes
 )
  ```
 
