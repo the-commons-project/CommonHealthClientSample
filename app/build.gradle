@@ -61,8 +61,8 @@ dependencies {
     implementation "org.thecommonsproject:commonhealth-common:$commonHealthVersion"
     implementation "org.thecommonsproject:commonhealth-client:$commonHealthVersion"
     // FOR SNAPSHOT VERSIONS
-    implementation(group: "org.thecommonsproject", name: "commonhealth-common", version: commonHealthVersion, changing: true)
-    implementation(group: "org.thecommonsproject", name: "commonhealth-client", version: commonHealthVersion, changing: true)
+//    implementation(group: "org.thecommonsproject", name: "commonhealth-common", version: commonHealthVersion, changing: true)
+//    implementation(group: "org.thecommonsproject", name: "commonhealth-client", version: commonHealthVersion, changing: true)
 
     //Room
     kapt "androidx.room:room-compiler:$roomVersion"
