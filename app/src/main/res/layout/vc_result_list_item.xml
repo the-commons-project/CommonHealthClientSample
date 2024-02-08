@@ -66,11 +66,10 @@
 
         </LinearLayout>
 
-
-
         <ImageView
             android:id="@+id/action_button"
             android:layout_width="24dp"
+            android:visibility="invisible"
             android:layout_height="24dp"
             android:layout_weight="0"
             android:layout_marginStart="@dimen/list_item_horizontal_margin"
